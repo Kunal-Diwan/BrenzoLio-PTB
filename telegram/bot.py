@@ -115,33 +115,32 @@ class Bot(TelegramObject):
 
         return decorator
 
-    def message(func):
+    @staticmethod
+    def _post_message(url, data, msg_cls=Message, expect_list=False, timeout=None, **kwargs):
+        reply_to_message_id = kwargs.get('reply_to_message_id')
+        if reply_to_message_id:
+            data['reply_to_message_id'] = reply_to_message_id
 
-        @functools.wraps(func)
-        def decorator(self, *args, **kwargs):
-            url, data = func(self, *args, **kwargs)
+        disable_notification = kwargs.get('disable_notification')
+        if disable_notification:
+            data['disable_notification'] = disable_notification
 
-            if kwargs.get('reply_to_message_id'):
-                data['reply_to_message_id'] = kwargs.get('reply_to_message_id')
+        reply_markup = kwargs.get('reply_markup')
+        if reply_markup:
+            if isinstance(reply_markup, ReplyMarkup):
+                reply_markup = reply_markup.to_json()
+            data['reply_markup'] = reply_markup
 
-            if kwargs.get('disable_notification'):
-                data['disable_notification'] = kwargs.get('disable_notification')
+        result = request.post(url, data, timeout=timeout)
 
-            if kwargs.get('reply_markup'):
-                reply_markup = kwargs.get('reply_markup')
-                if isinstance(reply_markup, ReplyMarkup):
-                    data['reply_markup'] = reply_markup.to_json()
-                else:
-                    data['reply_markup'] = reply_markup
+        if isinstance(result, int):
+            # int covers both boolean & integer results
+            return result
 
-            result = request.post(url, data, timeout=kwargs.get('timeout'))
+        if expect_list:
+            return [msg_cls.de_json(x) for x in result]
 
-            if result is True:
-                return result
-
-            return Message.de_json(result)
-
-        return decorator
+        return msg_cls.de_json(result)
 
     @log
     def getMe(self, **kwargs):
@@ -166,7 +165,6 @@ class Bot(TelegramObject):
         return self.bot
 
     @log
-    @message
     def sendMessage(self, chat_id, text, parse_mode=None, disable_web_page_preview=None, **kwargs):
         """Use this method to send text messages.
 
@@ -214,10 +212,9 @@ class Bot(TelegramObject):
         if disable_web_page_preview:
             data['disable_web_page_preview'] = disable_web_page_preview
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def forwardMessage(self, chat_id, from_chat_id, message_id, **kwargs):
         """Use this method to forward messages of any kind.
 
@@ -257,10 +254,9 @@ class Bot(TelegramObject):
         if message_id:
             data['message_id'] = message_id
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendPhoto(self, chat_id, photo, caption=None, **kwargs):
         """Use this method to send photos.
 
@@ -304,10 +300,9 @@ class Bot(TelegramObject):
         if caption:
             data['caption'] = caption
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendAudio(self, chat_id, audio, duration=None, performer=None, title=None, **kwargs):
         """Use this method to send audio files, if you want Telegram clients to
         display them in the music player. Your audio must be in an .mp3 format.
@@ -367,10 +362,9 @@ class Bot(TelegramObject):
         if title:
             data['title'] = title
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendDocument(self, chat_id, document, filename=None, caption=None, **kwargs):
         """Use this method to send general files.
 
@@ -419,10 +413,9 @@ class Bot(TelegramObject):
         if caption:
             data['caption'] = caption
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendSticker(self, chat_id, sticker, **kwargs):
         """Use this method to send .webp stickers.
 
@@ -460,10 +453,9 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id, 'sticker': sticker}
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendVideo(self, chat_id, video, duration=None, caption=None, **kwargs):
         """Use this method to send video files, Telegram clients support mp4
         videos (other formats may be sent as telegram.Document).
@@ -512,10 +504,9 @@ class Bot(TelegramObject):
         if caption:
             data['caption'] = caption
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendVoice(self, chat_id, voice, duration=None, **kwargs):
         """Use this method to send audio files, if you want Telegram clients to
         display the file as a playable voice message. For this to work, your
@@ -563,10 +554,9 @@ class Bot(TelegramObject):
         if duration:
             data['duration'] = duration
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendLocation(self, chat_id, latitude, longitude, **kwargs):
         """Use this method to send point on the map.
 
@@ -604,10 +594,9 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id, 'latitude': latitude, 'longitude': longitude}
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendVenue(
             self, chat_id,
             latitude,
@@ -666,10 +655,9 @@ class Bot(TelegramObject):
         if foursquare_id:
             data['foursquare_id'] = foursquare_id
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendContact(self, chat_id, phone_number, first_name, last_name=None, **kwargs):
         """
         Use this method to send phone contacts.
@@ -714,10 +702,9 @@ class Bot(TelegramObject):
         if last_name:
             data['last_name'] = last_name
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def sendChatAction(self, chat_id, action, **kwargs):
         """Use this method when you need to tell the user that something is
         happening on the bot's side. The status is set for 5 seconds or less
@@ -742,7 +729,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id, 'action': action}
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
     def answerInlineQuery(self,
@@ -808,9 +795,7 @@ class Bot(TelegramObject):
         if switch_pm_parameter:
             data['switch_pm_parameter'] = switch_pm_parameter
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
     def getUserProfilePhotos(self, user_id, offset=None, limit=100, **kwargs):
@@ -848,9 +833,7 @@ class Bot(TelegramObject):
         if limit:
             data['limit'] = limit
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return UserProfilePhotos.de_json(result)
+        return self._post_message(url, data, UserProfilePhotos, **kwargs)
 
     @log
     def getFile(self, file_id, **kwargs):
@@ -879,12 +862,12 @@ class Bot(TelegramObject):
 
         data = {'file_id': file_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
+        result = self._post_message(url, data, File, **kwargs)
 
-        if result.get('file_path'):
-            result['file_path'] = '%s/%s' % (self.base_file_url, result['file_path'])
+        if result.file_path:
+            result.file_path = '%s/%s' % (self.base_file_url, result.file_path)
 
-        return File.de_json(result)
+        return result
 
     @log
     def kickChatMember(self, chat_id, user_id, **kwargs):
@@ -916,9 +899,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id, 'user_id': user_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
     def unbanChatMember(self, chat_id, user_id, **kwargs):
@@ -950,9 +931,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id, 'user_id': user_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
     def answerCallbackQuery(self, callback_query_id, text=None, show_alert=False, **kwargs):
@@ -994,12 +973,9 @@ class Bot(TelegramObject):
         if show_alert:
             data['show_alert'] = show_alert
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def editMessageText(self,
                         text,
                         chat_id=None,
@@ -1065,10 +1041,9 @@ class Bot(TelegramObject):
         if disable_web_page_preview:
             data['disable_web_page_preview'] = disable_web_page_preview
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def editMessageCaption(self,
                            chat_id=None,
                            message_id=None,
@@ -1118,10 +1093,9 @@ class Bot(TelegramObject):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
-    @message
     def editMessageReplyMarkup(
             self, chat_id=None,
             message_id=None, inline_message_id=None,
@@ -1166,7 +1140,7 @@ class Bot(TelegramObject):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
 
-        return url, data
+        return self._post_message(url, data, **kwargs)
 
     @log
     def getUpdates(self, offset=None, limit=100, timeout=0, network_delay=5., **kwargs):
@@ -1207,14 +1181,14 @@ class Bot(TelegramObject):
 
         urlopen_timeout = timeout + network_delay
 
-        result = request.post(url, data, timeout=urlopen_timeout)
+        result = self._post_message(url, data, Update, True, **kwargs)
 
         if result:
-            self.logger.debug('Getting updates: %s', [u['update_id'] for u in result])
+            self.logger.debug('Got updates: %s', [u.update_id for u in result])
         else:
             self.logger.debug('No new updates found.')
 
-        return [Update.de_json(x) for x in result]
+        return result
 
     @log
     def setWebhook(self, webhook_url=None, certificate=None, **kwargs):
@@ -1250,9 +1224,7 @@ class Bot(TelegramObject):
         if certificate:
             data['certificate'] = certificate
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
     def leaveChat(self, chat_id, **kwargs):
@@ -1280,9 +1252,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
     def getChat(self, chat_id, **kwargs):
@@ -1312,9 +1282,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return Chat.de_json(result)
+        return self._post_message(url, data, Chat, **kwargs)
 
     @log
     def getChatAdministrators(self, chat_id, **kwargs):
@@ -1347,9 +1315,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return [ChatMember.de_json(x) for x in result]
+        return self._post_message(url, data, ChatMember, True, **kwargs)
 
     @log
     def getChatMembersCount(self, chat_id, **kwargs):
@@ -1377,9 +1343,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return result
+        return self._post_message(url, data, **kwargs)
 
     @log
     def getChatMember(self, chat_id, user_id, **kwargs):
@@ -1410,9 +1374,7 @@ class Bot(TelegramObject):
 
         data = {'chat_id': chat_id, 'user_id': user_id}
 
-        result = request.post(url, data, timeout=kwargs.get('timeout'))
-
-        return ChatMember.de_json(result)
+        return self._post_message(url, data, ChatMember, **kwargs)
 
     @staticmethod
     def de_json(data):
