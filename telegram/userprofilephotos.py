@@ -43,7 +43,7 @@ class UserProfilePhotos(TelegramObject):
     def de_json(data):
         """
         Args:
-            data (str):
+            data (dict):
 
         Returns:
             telegram.UserProfilePhotos:
