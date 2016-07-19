@@ -115,8 +115,7 @@ class Bot(TelegramObject):
 
         return decorator
 
-    @staticmethod
-    def _post_message(url, data, msg_cls=Message, expect_list=False, timeout=None, **kwargs):
+    def _post_message(self, url, data, msg_cls=Message, expect_list=False, timeout=None, **kwargs):
         reply_to_message_id = kwargs.get('reply_to_message_id')
         if reply_to_message_id:
             data['reply_to_message_id'] = reply_to_message_id
@@ -131,7 +130,7 @@ class Bot(TelegramObject):
                 reply_markup = reply_markup.to_json()
             data['reply_markup'] = reply_markup
 
-        result = request.post(url, data, timeout=timeout)
+        result = self._request_wrapper(request.post, url, data, timeout=timeout)
 
         if isinstance(result, int):
             # int covers both boolean & integer results
@@ -141,6 +140,11 @@ class Bot(TelegramObject):
             return [msg_cls.de_json(x) for x in result]
 
         return msg_cls.de_json(result)
+
+    def _request_wrapper(self, method, url, *args, **kwargs):
+        # classes inheriting from Bot, can wrap this method in order to perform retries
+        # this is intended to be used only with request.post() & request.get()
+        return method(url, *args, **kwargs)
 
     @log
     def getMe(self, **kwargs):
@@ -158,7 +162,7 @@ class Bot(TelegramObject):
 
         url = '{0}/getMe'.format(self.base_url)
 
-        result = request.get(url)
+        result = self._request_wrapper(request.get, url)
 
         self._bot = User.de_json(result)
 
