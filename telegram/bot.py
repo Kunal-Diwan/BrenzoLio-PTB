@@ -60,9 +60,15 @@ class Bot(TelegramObject):
         else:
             self.base_file_url = base_file_url + self.token
 
-        self.bot = None
+        self._bot = None
 
         self.logger = logging.getLogger(__name__)
+
+    @property
+    def bot(self):
+        if not self._bot:
+            self.getMe()
+        return self._bot
 
     @staticmethod
     def _validate_token(token):
@@ -76,35 +82,19 @@ class Bot(TelegramObject):
 
         return token
 
-    def info(func):
-
-        @functools.wraps(func)
-        def decorator(self, *args, **kwargs):
-            if not self.bot:
-                self.getMe()
-
-            result = func(self, *args, **kwargs)
-            return result
-
-        return decorator
-
     @property
-    @info
     def id(self):
         return self.bot.id
 
     @property
-    @info
     def first_name(self):
         return self.bot.first_name
 
     @property
-    @info
     def last_name(self):
         return self.bot.last_name
 
     @property
-    @info
     def username(self):
         return self.bot.username
 
@@ -171,7 +161,7 @@ class Bot(TelegramObject):
 
         result = request.get(url)
 
-        self.bot = User.de_json(result)
+        self._bot = User.de_json(result)
 
         return self.bot
 
