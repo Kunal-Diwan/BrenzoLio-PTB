@@ -1185,7 +1185,7 @@ class Bot(TelegramObject):
 
         urlopen_timeout = timeout + network_delay
 
-        result = self._post_message(url, data, Update, True, **kwargs)
+        result = self._post_message(url, data, Update, True, urlopen_timeout, **kwargs)
 
         if result:
             self.logger.debug('Got updates: %s', [u.update_id for u in result])
