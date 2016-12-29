@@ -26,6 +26,7 @@ The following wonderful people contributed directly or indirectly to this projec
 - `Li-aung Yip <https://github.com/LiaungYip>`_
 - `macrojames <https://github.com/macrojames>`_
 - `Michael Elovskikh <https://github.com/wronglink>`_
+- `Mikki Weesenaar <https://github.com/MWeesenaar>`_
 - `naveenvhegde <https://github.com/naveenvhegde>`_
 - `njittam <https://github.com/njittam>`_
 - `Noam Meltzer <https://github.com/tsnoam>`_
