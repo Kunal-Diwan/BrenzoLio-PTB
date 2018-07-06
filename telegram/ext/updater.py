@@ -30,6 +30,7 @@ from queue import Queue
 from telegram import Bot, TelegramError
 from telegram.ext import Dispatcher, JobQueue
 from telegram.error import Unauthorized, InvalidToken, RetryAfter, TimedOut
+from telegram.ext.callbackmanager import DictCallbackManager
 from telegram.utils.helpers import get_signal_name
 from telegram.utils.request import Request
 from telegram.utils.webhookhandler import (WebhookServer, WebhookHandler)
@@ -95,6 +96,7 @@ class Updater(object):
                  bot=None,
                  user_sig_handler=None,
                  request_kwargs=None,
+                 callback_manager=None,
                  use_context=False):
 
         if (token is None) and (bot is None):
@@ -105,6 +107,8 @@ class Updater(object):
         self.logger = logging.getLogger(__name__)
 
         con_pool_size = workers + 4
+
+        callback_manager = callback_manager or DictCallbackManager()
 
         if bot is not None:
             self.bot = bot
@@ -124,7 +128,11 @@ class Updater(object):
             if 'con_pool_size' not in request_kwargs:
                 request_kwargs['con_pool_size'] = con_pool_size
             self._request = Request(**request_kwargs)
-            self.bot = Bot(token, base_url, request=self._request)
+            self.bot = Bot(
+                token,
+                base_url,
+                request=self._request,
+                callback_manager=callback_manager)
         self.user_sig_handler = user_sig_handler
         self.update_queue = Queue()
         self.job_queue = JobQueue()
@@ -135,7 +143,9 @@ class Updater(object):
             job_queue=self.job_queue,
             workers=workers,
             exception_event=self.__exception_event,
-            use_context=use_context)
+            use_context=use_context,
+            callback_manager=callback_manager
+        )
         self.job_queue.set_dispatcher(self.dispatcher)
         self.last_update_id = 0
         self.running = False

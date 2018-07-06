@@ -16,41 +16,31 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-"""This module contains the CallbackQueryHandler class."""
-
-import re
-
-from future.utils import string_types
+"""This module contains the ChosenInlineResultHandler class."""
+import collections
 
 from telegram import Update
-from .handler import Handler
+from telegram.ext import Handler
+from telegram.flow.action import get_action_id
 
 
-class CallbackQueryHandler(Handler):
-    """Handler class to handle Telegram callback queries. Optionally based on a regex.
-
-    Read the documentation of the ``re`` module for more information.
+class ChosenInlineActionHandler(Handler):
+    """Handler class to handle Telegram updates that contain a chosen inline result.
 
     Attributes:
         callback (:obj:`callable`): The callback function for this handler.
-        pass_update_queue (:obj:`bool`): Determines whether ``update_queue`` will be
+        pass_update_queue (:obj:`bool`): Optional. Determines whether ``update_queue`` will be
             passed to the callback function.
-        pass_job_queue (:obj:`bool`): Determines whether ``job_queue`` will be passed to
+        pass_job_queue (:obj:`bool`): Optional. Determines whether ``job_queue`` will be passed to
             the callback function.
-        pattern (:obj:`str` | `Pattern`): Optional. Regex pattern to test
-            :attr:`telegram.CallbackQuery.data` against.
-        pass_groups (:obj:`bool`): Determines whether ``groups`` will be passed to the
-            callback function.
-        pass_groupdict (:obj:`bool`): Determines whether ``groupdict``. will be passed to
+        pass_user_data (:obj:`bool`): Optional. Determines whether ``user_data`` will be passed to
             the callback function.
-        pass_user_data (:obj:`bool`): Determines whether ``user_data`` will be passed to
-            the callback function.
-        pass_chat_data (:obj:`bool`): Determines whether ``chat_data`` will be passed to
+        pass_chat_data (:obj:`bool`): Optional. Determines whether ``chat_data`` will be passed to
             the callback function.
 
     Note:
         :attr:`pass_user_data` and :attr:`pass_chat_data` determine whether a ``dict`` you
-        can use to keep any data in will be sent to the :attr:`callback` function. Related to
+        can use to keep any data in will be sent to the :attr:`callback` function.. Related to
         either the user or the chat that the update was sent in. For each update from the same user
         or in the same chat, it will be the same ``dict``.
 
@@ -62,7 +52,7 @@ class CallbackQueryHandler(Handler):
             :attr:`check_update` has determined that an update should be processed by this handler.
             Callback signature for context based API:
 
-                ``def callback(update: Update, context: CallbackContext)``
+            ``def callback(update: Update, context: CallbackContext)``
 
             The return value of the callback is usually ignored except for the special case of
             :class:`telegram.ext.ConversationHandler`.
@@ -76,17 +66,6 @@ class CallbackQueryHandler(Handler):
             :class:`telegram.ext.JobQueue` instance created by the :class:`telegram.ext.Updater`
             which can be used to schedule new jobs. Default is ``False``.
             DEPRECATED: Please switch to context based callbacks.
-        pattern (:obj:`str` | `Pattern`, optional): Regex pattern. If not ``None``, ``re.match``
-            is used on :attr:`telegram.CallbackQuery.data` to determine if an update should be
-            handled by this handler.
-        pass_groups (:obj:`bool`, optional): If the callback should be passed the result of
-            ``re.match(pattern, data).groups()`` as a keyword argument called ``groups``.
-            Default is ``False``
-            DEPRECATED: Please switch to context based callbacks.
-        pass_groupdict (:obj:`bool`, optional): If the callback should be passed the result of
-            ``re.match(pattern, data).groupdict()`` as a keyword argument called ``groupdict``.
-            Default is ``False``
-            DEPRECATED: Please switch to context based callbacks.
         pass_user_data (:obj:`bool`, optional): If set to ``True``, a keyword argument called
             ``user_data`` will be passed to the callback function. Default is ``False``.
             DEPRECATED: Please switch to context based callbacks.
@@ -96,28 +75,13 @@ class CallbackQueryHandler(Handler):
 
     """
 
-    def __init__(self,
-                 callback,
-                 pass_update_queue=False,
-                 pass_job_queue=False,
-                 pattern=None,
-                 pass_groups=False,
-                 pass_groupdict=False,
-                 pass_user_data=False,
+    def __init__(self, action, callback, pass_update_queue=False, pass_job_queue=False, pass_user_data=False,
                  pass_chat_data=False):
-        super(CallbackQueryHandler, self).__init__(
-            callback,
-            pass_update_queue=pass_update_queue,
-            pass_job_queue=pass_job_queue,
-            pass_user_data=pass_user_data,
-            pass_chat_data=pass_chat_data)
+        super().__init__(callback, pass_update_queue, pass_job_queue, pass_user_data, pass_chat_data)
+        self.action_id = get_action_id(action)
 
-        if isinstance(pattern, string_types):
-            pattern = re.compile(pattern)
-
-        self.pattern = pattern
-        self.pass_groups = pass_groups
-        self.pass_groupdict = pass_groupdict
+        # Hold back three of the most recent updates so a message can be inserted in the ChosenInlineResult
+        self.__most_recent_updates = collections.deque(maxlen=3)
 
     def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
@@ -129,15 +93,23 @@ class CallbackQueryHandler(Handler):
             :obj:`bool`
 
         """
-        if isinstance(update, Update) and update.callback_query:
-            if self.pattern:
-                if update.callback_query.data:
-                    match = re.match(self.pattern, update.callback_query.data)
-                    if match:
-                        return match
-            else:
-                return True
+        if isinstance(update, Update):
+            if update.chosen_inline_result:
+                action_id = dispatcher.callback_manager.peek_action(
+                    update.chosen_inline_result.result_id
+                )
+                return action_id == self.action_id
+            elif update.message:
+                self.__most_recent_updates.appendleft(update)
 
     def collect_additional_context(self, context, update, dispatcher, check_result):
-        data = dispatcher.callback_manager.lookup_callback_data(update.callback_query.data)
-        context.view_model = data
+        callback_item = dispatcher.callback_manager.lookup_callback(
+            update.chosen_inline_result.result_id
+        )
+
+        # Insert the held-back Message object into this ChosenInlineResult when applicable
+        for ud in self.__most_recent_updates:
+            if ud.effective_user.id == update.effective_user.id:
+                update.message = ud.message
+
+        context.view_model = callback_item.model_data

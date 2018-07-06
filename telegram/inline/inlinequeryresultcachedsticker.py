@@ -48,13 +48,14 @@ class InlineQueryResultCachedSticker(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  sticker_file_id,
+                 view_data=None,
                  reply_markup=None,
                  input_message_content=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedSticker, self).__init__('sticker', id)
+        super(InlineQueryResultCachedSticker, self).__init__('sticker', action, view_data=view_data)
         self.sticker_file_id = sticker_file_id
 
         # Optionals

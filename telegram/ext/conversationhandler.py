@@ -21,8 +21,11 @@
 import logging
 
 from telegram import Update
-from telegram.ext import (Handler, CallbackQueryHandler, InlineQueryHandler,
-                          ChosenInlineResultHandler)
+from telegram.flow.action import RerouteToAction
+from telegram.ext.callbackqueryhandler import CallbackQueryHandler
+from telegram.ext.choseninlineresulthandler import ChosenInlineResultHandler
+from telegram.ext.handler import Handler
+from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.utils.promise import Promise
 
 
@@ -200,7 +203,7 @@ class ConversationHandler(Handler):
 
         return tuple(key)
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """
         Determines whether an update should be handled by this conversationhandler, and if so in
         which state the conversation currently is.
@@ -242,7 +245,7 @@ class ConversationHandler(Handler):
 
             else:
                 for candidate in (self.timed_out_behavior or []):
-                    check = candidate.check_update(update)
+                    check = candidate.check_update(update, dispatcher)
                     if check is not None and check is not False:
                         # Save the current user and the selected handler for handle_update
                         return key, candidate, check
@@ -257,7 +260,7 @@ class ConversationHandler(Handler):
         # Search entry points for a match
         if state is None or self.allow_reentry:
             for entry_point in self.entry_points:
-                check = entry_point.check_update(update)
+                check = entry_point.check_update(update, dispatcher)
                 if check is not None and check is not False:
                     handler = entry_point
                     break
@@ -271,7 +274,7 @@ class ConversationHandler(Handler):
             handlers = self.states.get(state)
 
             for candidate in (handlers or []):
-                check = candidate.check_update(update)
+                check = candidate.check_update(update, dispatcher)
                 if check is not None and check is not False:
                     handler = candidate
                     break
@@ -279,7 +282,7 @@ class ConversationHandler(Handler):
             # Find a fallback handler if all other handlers fail
             else:
                 for fallback in self.fallbacks:
-                    check = fallback.check_update(update)
+                    check = fallback.check_update(update, dispatcher)
                     if check is not None and check is not False:
                         handler = fallback
                         break
@@ -300,18 +303,35 @@ class ConversationHandler(Handler):
 
         """
         conversation_key, handler, check_result = check_result
-        new_state = handler.handle_update(update, dispatcher, check_result)
+        result = handler.handle_update(update, dispatcher, check_result)
         timeout_job = self.timeout_jobs.pop(conversation_key, None)
 
         if timeout_job is not None:
             timeout_job.schedule_removal()
-        if self.conversation_timeout and new_state != self.END:
+        if self.conversation_timeout and result != self.END:
             self.timeout_jobs[conversation_key] = dispatcher.job_queue.run_once(
                 self._trigger_timeout, self.conversation_timeout,
                 context=conversation_key
             )
 
-        self.update_state(new_state, conversation_key)
+        if isinstance(result, RerouteToAction):
+            key = self._get_key(update)
+            state = self.conversations.get(key)
+
+            reroute_result = dispatcher.execute_reroutes(
+                update,
+                result,
+                applicable_handlers=self.entry_points + self.fallbacks + self.states[state]
+            )
+
+            if result.new_state:
+                new_state = result.new_state
+            else:
+                new_state = reroute_result
+
+            self.update_state(new_state, conversation_key)
+        else:
+            self.update_state(result, conversation_key)
 
     def update_state(self, new_state, key):
         if new_state == self.END:

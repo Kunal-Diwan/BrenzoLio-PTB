@@ -25,14 +25,19 @@ import json
 import logging
 import warnings
 from datetime import datetime
+from itertools import chain
+from pprint import pprint
 
 from future.utils import string_types
 
-from telegram import (User, Message, Update, Chat, ChatMember, UserProfilePhotos, File,
-                      ReplyMarkup, TelegramObject, WebhookInfo, GameHighScore, StickerSet,
-                      PhotoSize, Audio, Document, Sticker, Video, Voice, VideoNote, Location,
-                      Venue, Contact)
+from telegram import (Audio, Chat, ChatMember, Contact, Document, File, GameHighScore,
+                      InlineKeyboardMarkup, Location,
+                      Message, PhotoSize, ReplyKeyboardMarkup, ReplyMarkup, Sticker, StickerSet,
+                      TelegramObject,
+                      Update, User, UserProfilePhotos, Venue, Video, VideoNote, Voice, WebhookInfo)
+from telegram.constants import NOTSET
 from telegram.error import InvalidToken, TelegramError
+from telegram.flow.action import Action, get_action_id
 from telegram.utils.helpers import to_timestamp
 from telegram.utils.request import Request
 
@@ -75,9 +80,39 @@ def message(func):
         if kwargs.get('disable_notification'):
             data['disable_notification'] = kwargs.get('disable_notification')
 
+        callbacks = []
+
         if kwargs.get('reply_markup'):
             reply_markup = kwargs.get('reply_markup')
             if isinstance(reply_markup, ReplyMarkup):
+                buttons = []
+                if isinstance(reply_markup, InlineKeyboardMarkup):
+                    buttons = reply_markup.inline_keyboard
+                    is_inline = True
+                elif isinstance(reply_markup, ReplyKeyboardMarkup):
+                    buttons = reply_markup.keyboard
+                    is_inline = False
+
+                from telegram.ext import ActionButton
+                buttons = [b for b
+                           in chain.from_iterable(buttons)
+                           if isinstance(b, ActionButton)]
+
+                for n, button in enumerate(buttons):
+                    # noinspection PyUnboundLocalVariable
+                    button.is_inline = is_inline
+                    callback = button.insert_callback(self.callback_manager)
+
+                    chat_id = data.get("chat_id")
+                    try:
+                        chat_id = int(chat_id)
+                    except TypeError:
+                        pass
+                    else:
+                        callback.chat_id = chat_id
+
+                    callbacks.append(callback)
+
                 data['reply_markup'] = reply_markup.to_json()
             else:
                 data['reply_markup'] = reply_markup
@@ -87,7 +122,12 @@ def message(func):
         if result is True:
             return result
 
-        return Message.de_json(result, self)
+        result = Message.de_json(result, self)
+
+        for callback in callbacks:
+            callback.chat_id = result.chat_id
+
+        return result
 
     return decorator
 
@@ -104,7 +144,12 @@ class Bot(TelegramObject):
 
     """
 
-    def __init__(self, token, base_url=None, base_file_url=None, request=None):
+    def __init__(self,
+                 token,
+                 base_url=None,
+                 base_file_url=None,
+                 request=None,
+                 callback_manager=None):
         self.token = self._validate_token(token)
 
         if base_url is None:
@@ -117,6 +162,7 @@ class Bot(TelegramObject):
         self.base_file_url = str(base_file_url) + str(self.token)
         self.bot = None
         self._request = request or Request()
+        self.callback_manager = callback_manager
         self.logger = logging.getLogger(__name__)
 
     @property
@@ -1281,6 +1327,10 @@ class Bot(TelegramObject):
 
         """
         url = '{0}/answerInlineQuery'.format(self.base_url)
+
+        for res in results:
+            if res.id is NOTSET:
+                res.insert_callback(self.callback_manager)
 
         results = [res.to_dict() for res in results]
 
@@ -2943,8 +2993,10 @@ class Bot(TelegramObject):
         """
         url = '{0}/createNewStickerSet'.format(self.base_url)
 
-        data = {'user_id': user_id, 'name': name, 'title': title, 'png_sticker': png_sticker,
-                'emojis': emojis}
+        data = {
+            'user_id': user_id, 'name': name, 'title': title, 'png_sticker': png_sticker,
+            'emojis': emojis
+        }
 
         if contains_masks is not None:
             data['contains_masks'] = contains_masks

@@ -53,14 +53,13 @@ class TelegramObject(object):
             :obj:`str`
 
         """
-
         return json.dumps(self.to_dict())
 
     def to_dict(self):
         data = dict()
 
         for key in iter(self.__dict__):
-            if key in ('bot', '_id_attrs'):
+            if key == 'bot' or key.startswith('_'):
                 continue
 
             value = self.__dict__[key]

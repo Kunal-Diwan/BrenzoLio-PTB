@@ -60,9 +60,10 @@ class InlineQueryResultCachedDocument(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  title,
                  document_file_id,
+                 view_data=None,
                  description=None,
                  caption=None,
                  reply_markup=None,
@@ -70,7 +71,7 @@ class InlineQueryResultCachedDocument(InlineQueryResult):
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedDocument, self).__init__('document', id)
+        super(InlineQueryResultCachedDocument, self).__init__('document', action, view_data=view_data)
         self.title = title
         self.document_file_id = document_file_id
 

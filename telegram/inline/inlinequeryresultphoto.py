@@ -68,9 +68,10 @@ class InlineQueryResultPhoto(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  photo_url,
                  thumb_url,
+                 view_data=None,
                  photo_width=None,
                  photo_height=None,
                  title=None,
@@ -81,7 +82,7 @@ class InlineQueryResultPhoto(InlineQueryResult):
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultPhoto, self).__init__('photo', id)
+        super(InlineQueryResultPhoto, self).__init__('photo', action, view_data=view_data)
         self.photo_url = photo_url
         self.thumb_url = thumb_url
 

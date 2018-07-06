@@ -61,9 +61,10 @@ class InlineQueryResultCachedVideo(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  video_file_id,
                  title,
+                 view_data=None,
                  description=None,
                  caption=None,
                  reply_markup=None,
@@ -71,7 +72,7 @@ class InlineQueryResultCachedVideo(InlineQueryResult):
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedVideo, self).__init__('video', id)
+        super(InlineQueryResultCachedVideo, self).__init__('video', action, view_data=view_data)
         self.video_file_id = video_file_id
         self.title = title
 

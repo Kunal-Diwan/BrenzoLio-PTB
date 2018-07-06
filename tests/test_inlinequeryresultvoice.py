@@ -27,7 +27,7 @@ from telegram import (InlineKeyboardButton, InputTextMessageContent, InlineQuery
 def inline_query_result_voice():
     return InlineQueryResultVoice(
         type=TestInlineQueryResultVoice.type,
-        id=TestInlineQueryResultVoice.id,
+        action=TestInlineQueryResultVoice.id,
         voice_url=TestInlineQueryResultVoice.voice_url,
         title=TestInlineQueryResultVoice.title,
         voice_duration=TestInlineQueryResultVoice.voice_duration,

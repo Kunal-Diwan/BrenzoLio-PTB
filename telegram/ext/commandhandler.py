@@ -135,7 +135,7 @@ class CommandHandler(Handler):
         self.allow_edited = allow_edited
         self.pass_args = pass_args
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:
@@ -298,7 +298,7 @@ class PrefixHandler(CommandHandler):
             self.command = command
         self.command = [x.lower() + y.lower() for x in self.prefix for y in self.command]
 
-    def check_update(self, update):
+    def check_update(self, update, *args):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:

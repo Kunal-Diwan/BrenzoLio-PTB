@@ -58,9 +58,10 @@ class InlineQueryResultContact(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  phone_number,
                  first_name,
+                 view_data=None,
                  last_name=None,
                  reply_markup=None,
                  input_message_content=None,
@@ -69,7 +70,7 @@ class InlineQueryResultContact(InlineQueryResult):
                  thumb_height=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultContact, self).__init__('contact', id)
+        super(InlineQueryResultContact, self).__init__('contact', action, view_data=view_data)
         self.phone_number = phone_number
         self.first_name = first_name
 

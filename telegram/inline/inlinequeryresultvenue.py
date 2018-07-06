@@ -62,11 +62,12 @@ class InlineQueryResultVenue(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  latitude,
                  longitude,
                  title,
                  address,
+                 view_data=None,
                  foursquare_id=None,
                  reply_markup=None,
                  input_message_content=None,
@@ -76,7 +77,7 @@ class InlineQueryResultVenue(InlineQueryResult):
                  **kwargs):
 
         # Required
-        super(InlineQueryResultVenue, self).__init__('venue', id)
+        super(InlineQueryResultVenue, self).__init__('venue', action, view_data=view_data)
         self.latitude = latitude
         self.longitude = longitude
         self.title = title

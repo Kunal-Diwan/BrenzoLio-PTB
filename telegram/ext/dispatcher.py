@@ -21,19 +21,22 @@
 import logging
 import warnings
 import weakref
+from collections import defaultdict
 from functools import wraps
-from threading import Thread, Lock, Event, current_thread, BoundedSemaphore
+from queue import Empty, Queue
+from threading import BoundedSemaphore, Event, Lock, Thread, current_thread
 from time import sleep
 from uuid import uuid4
-from collections import defaultdict
-
-from queue import Queue, Empty
 
 from future.builtins import range
 
+import telegram
+import telegram.flow
 from telegram import TelegramError
-from telegram.ext.handler import Handler
+from telegram.ext import ConversationHandler
+from telegram.flow.action import Action, RerouteToAction, get_action_id
 from telegram.ext.callbackcontext import CallbackContext
+from telegram.ext.handler import Handler
 from telegram.utils.deprecate import TelegramDeprecationWarning
 from telegram.utils.promise import Promise
 
@@ -51,6 +54,7 @@ def run_async(func):
     Note: Use this decorator to run handlers asynchronously.
 
     """
+
     @wraps(func)
     def async_func(*args, **kwargs):
         return Dispatcher.get_instance().run_async(func, *args, **kwargs)
@@ -63,6 +67,7 @@ class DispatcherHandlerStop(Exception):
     pass
 
 
+# noinspection PyBroadException
 class Dispatcher(object):
     """This class dispatches all kinds of updates to its registered handlers.
 
@@ -98,7 +103,9 @@ class Dispatcher(object):
                  workers=4,
                  exception_event=None,
                  job_queue=None,
-                 use_context=False):
+                 use_context=False,
+                 callback_manager=None
+                 ):
         self.bot = bot
         self.update_queue = update_queue
         self.job_queue = job_queue
@@ -119,6 +126,9 @@ class Dispatcher(object):
         """List[:obj:`int`]: A list with all groups."""
         self.error_handlers = []
         """List[:obj:`callable`]: A list of errorHandlers."""
+
+        self.callback_manager = callback_manager
+        self._context_type = CallbackContext
 
         self.running = False
         """:obj:`bool`: Indicates if this dispatcher is running."""
@@ -182,6 +192,14 @@ class Dispatcher(object):
                     'DispatcherHandlerStop is not supported with async functions; func: %s',
                     promise.pooled_function.__name__)
 
+    @property
+    def custom_context(self):
+        return self._context_type
+
+    @custom_context.setter
+    def custom_context(self, value):
+        self._context_type = value
+
     def run_async(self, func, *args, **kwargs):
         """Queue a function (with given args/kwargs) to be run asynchronously.
 
@@ -227,6 +245,8 @@ class Dispatcher(object):
 
         if ready is not None:
             ready.set()
+
+        actual_usage = [h.action_id for h in self.handlers if hasattr(h, 'action')]
 
         while 1:
             try:
@@ -274,6 +294,60 @@ class Dispatcher(object):
     def has_running_threads(self):
         return self.running or bool(self.__async_threads)
 
+    def execute_reroutes(self,
+                         update,
+                         reroute_to_action,
+                         applicable_handlers,
+                         num_reroutes=0):
+        if num_reroutes >= telegram.flow.max_reroutes_per_update:
+            raise RuntimeError("Maximum number of reroutes exceeded ({})."
+                               "Make sure that there are no endless reroute "
+                               "loops.".format(telegram.flow.max_reroutes_per_update))
+
+        action_id = get_action_id(reroute_to_action.origin_action)
+
+        matching_handler_found = False
+        for handler in applicable_handlers:
+            if hasattr(handler, 'action'):
+                handler_action_id = handler.action.id
+            elif hasattr(handler, 'action_id'):
+                handler_action_id = handler.action_id
+            else:
+                continue
+
+            if handler_action_id == action_id:
+                # check = handler.check_update(update, self)
+                # if check is None or check is False:
+                #     matching_handler_found = handler
+                #     continue
+                #
+                # result = handler.handle_update(update, self, check)
+
+                context = CallbackContext.from_update(update, self)
+                context.view_model = reroute_to_action.view_model
+                result = handler.callback(update, context)
+
+                if isinstance(result, Action):
+                    reroute = RerouteToAction(result)
+                elif isinstance(result, RerouteToAction):
+                    reroute = result
+                else:
+                    return result
+
+                return self.execute_reroutes(
+                    update,
+                    reroute,
+                    applicable_handlers,
+                    num_reroutes + 1)
+        else:
+            if matching_handler_found:
+                raise ValueError("A handler matching this Reroute Action ('{}') was found, "
+                                 "but it is not valid for this type of update: "
+                                 "{}".format(action_id, matching_handler_found))
+
+            raise ValueError("No matching handler was found for Action {}.".format(
+                reroute_to_action.origin_action))
+
     def process_update(self, update):
         """Processes a single update.
 
@@ -282,8 +356,8 @@ class Dispatcher(object):
                 The update to process.
 
         """
-        # An error happened while polling
         if isinstance(update, TelegramError):
+            # An error happened while polling
             try:
                 self.dispatch_error(None, update)
             except Exception:
@@ -291,33 +365,41 @@ class Dispatcher(object):
             return
 
         for group in self.groups:
-            try:
-                for handler in self.handlers[group]:
-                    check = handler.check_update(update)
-                    if check is not None and check is not False:
-                        handler.handle_update(update, self, check)
-                        break
-
-            # Stop processing with any other handler.
-            except DispatcherHandlerStop:
-                self.logger.debug('Stopping further handlers due to DispatcherHandlerStop')
-                break
-
-            # Dispatch any error.
-            except TelegramError as te:
-                self.logger.warning('A TelegramError was raised while processing the Update')
-
+            for handler in self.handlers[group]:
                 try:
-                    self.dispatch_error(update, te)
-                except DispatcherHandlerStop:
-                    self.logger.debug('Error handler stopped further handlers')
-                    break
-                except Exception:
-                    self.logger.exception('An uncaught error was raised while handling the error')
+                    check = handler.check_update(update, self)
+                    if check is None or check is False:
+                        continue
+                    result = handler.handle_update(update, self, check)
 
-            # Errors should not stop the thread.
-            except Exception:
-                self.logger.exception('An uncaught error was raised while processing the update')
+                    if isinstance(result, RerouteToAction):
+                        self.execute_reroutes(
+                            update,
+                            result,
+                            applicable_handlers=self.handlers[group])
+
+                # Stop processing with any other handler.
+                except DispatcherHandlerStop:
+                    self.logger.debug('Stopping further handlers due to DispatcherHandlerStop')
+                    break
+
+                # Dispatch any error.
+                except TelegramError as te:
+                    self.logger.warning('A TelegramError was raised while processing the Update')
+
+                    try:
+                        self.dispatch_error(update, te)
+                    except DispatcherHandlerStop:
+                        self.logger.debug('Error handler stopped further handlers')
+                        break
+                    except Exception:
+                        self.logger.exception(
+                            'An uncaught error was raised while handling the error')
+
+                # Errors should not stop the thread.
+                except Exception:
+                    self.logger.exception(
+                        'An uncaught error was raised while processing the update')
 
     def add_handler(self, handler, group=DEFAULT_GROUP):
         """Register a handler.

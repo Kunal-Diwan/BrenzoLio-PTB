@@ -71,11 +71,12 @@ class InlineQueryResultVideo(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  video_url,
                  mime_type,
                  thumb_url,
                  title,
+                 view_data=None,
                  caption=None,
                  video_width=None,
                  video_height=None,
@@ -87,7 +88,7 @@ class InlineQueryResultVideo(InlineQueryResult):
                  **kwargs):
 
         # Required
-        super(InlineQueryResultVideo, self).__init__('video', id)
+        super(InlineQueryResultVideo, self).__init__('video', action, view_data=view_data)
         self.video_url = video_url
         self.mime_type = mime_type
         self.thumb_url = thumb_url

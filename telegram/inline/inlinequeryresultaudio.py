@@ -62,9 +62,10 @@ class InlineQueryResultAudio(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  audio_url,
                  title,
+                 view_data=None,
                  performer=None,
                  audio_duration=None,
                  caption=None,
@@ -74,7 +75,7 @@ class InlineQueryResultAudio(InlineQueryResult):
                  **kwargs):
 
         # Required
-        super(InlineQueryResultAudio, self).__init__('audio', id)
+        super(InlineQueryResultAudio, self).__init__('audio', action, view_data=view_data)
         self.audio_url = audio_url
         self.title = title
 

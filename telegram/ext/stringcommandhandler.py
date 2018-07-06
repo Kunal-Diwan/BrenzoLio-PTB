@@ -80,7 +80,7 @@ class StringCommandHandler(Handler):
         self.command = command
         self.pass_args = pass_args
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:

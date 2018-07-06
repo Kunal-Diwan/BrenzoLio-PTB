@@ -40,10 +40,10 @@ class InlineQueryResultGame(InlineQueryResult):
 
     """
 
-    def __init__(self, id, game_short_name, reply_markup=None, **kwargs):
+    def __init__(self, action, game_short_name, reply_markup=None, view_data=None, **kwargs):
         # Required
-        super(InlineQueryResultGame, self).__init__('game', id)
-        self.id = id
+        super(InlineQueryResultGame, self).__init__('game', action, view_data=view_data)
+        self.id = action
         self.game_short_name = game_short_name
 
         if reply_markup:

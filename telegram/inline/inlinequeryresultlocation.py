@@ -62,10 +62,11 @@ class InlineQueryResultLocation(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  latitude,
                  longitude,
                  title,
+                 view_data=None,
                  live_period=None,
                  reply_markup=None,
                  input_message_content=None,
@@ -74,7 +75,7 @@ class InlineQueryResultLocation(InlineQueryResult):
                  thumb_height=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultLocation, self).__init__('location', id)
+        super(InlineQueryResultLocation, self).__init__('location', action, view_data=view_data)
         self.latitude = latitude
         self.longitude = longitude
         self.title = title

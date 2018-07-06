@@ -59,8 +59,9 @@ class InlineQueryResultCachedGif(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  gif_file_id,
+                 view_data=None,
                  title=None,
                  caption=None,
                  reply_markup=None,
@@ -68,7 +69,7 @@ class InlineQueryResultCachedGif(InlineQueryResult):
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedGif, self).__init__('gif', id)
+        super(InlineQueryResultCachedGif, self).__init__('gif', action, view_data=view_data)
         self.gif_file_id = gif_file_id
 
         # Optionals

@@ -21,7 +21,7 @@
 from telegram import InlineQueryResult
 
 
-class InlineQueryResultArticle(InlineQueryResult):
+class InlineQueryAction(InlineQueryResult):
     """This object represents a Telegram InlineQueryResultArticle.
 
     Attributes:
@@ -59,10 +59,9 @@ class InlineQueryResultArticle(InlineQueryResult):
     """
 
     def __init__(self,
-                 action,
+                 id,
                  title,
                  input_message_content,
-                 view_data=None,
                  reply_markup=None,
                  url=None,
                  hide_url=None,
@@ -73,7 +72,7 @@ class InlineQueryResultArticle(InlineQueryResult):
                  **kwargs):
 
         # Required
-        super(InlineQueryResultArticle, self).__init__('article', action, view_data=view_data)
+        super(InlineQueryAction, self).__init__('article', id)
         self.title = title
         self.input_message_content = input_message_content
 

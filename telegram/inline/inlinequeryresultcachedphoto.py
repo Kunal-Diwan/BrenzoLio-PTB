@@ -61,8 +61,9 @@ class InlineQueryResultCachedPhoto(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  photo_file_id,
+                 view_data=None,
                  title=None,
                  description=None,
                  caption=None,
@@ -71,7 +72,7 @@ class InlineQueryResultCachedPhoto(InlineQueryResult):
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedPhoto, self).__init__('photo', id)
+        super(InlineQueryResultCachedPhoto, self).__init__('photo', action, view_data=view_data)
         self.photo_file_id = photo_file_id
 
         # Optionals

@@ -17,11 +17,15 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains the CallbackContext class."""
+from typing import TypeVar, Generic
 
 from telegram import Update
+from telegram.flow.action import ViewModel
+
+T = TypeVar('T', bound=ViewModel)
 
 
-class CallbackContext(object):
+class CallbackContext(Generic[T]):
     """
     This is a context object passed to the callback called by :class:`telegram.ext.Handler`
     or by the :class:`telegram.ext.Dispatcher` in an error handler added by
@@ -59,6 +63,7 @@ class CallbackContext(object):
         self._dispatcher = dispatcher
         self.chat_data = None
         self.user_data = None
+        self.view_model = None  # type: T
         self.args = None
         self.match = None
         self.error = None

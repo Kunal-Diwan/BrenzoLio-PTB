@@ -61,9 +61,10 @@ class InlineQueryResultVoice(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  voice_url,
                  title,
+                 view_data=None,
                  voice_duration=None,
                  caption=None,
                  reply_markup=None,
@@ -72,7 +73,7 @@ class InlineQueryResultVoice(InlineQueryResult):
                  **kwargs):
 
         # Required
-        super(InlineQueryResultVoice, self).__init__('voice', id)
+        super(InlineQueryResultVoice, self).__init__('voice', action, view_data=view_data)
         self.voice_url = voice_url
         self.title = title
 

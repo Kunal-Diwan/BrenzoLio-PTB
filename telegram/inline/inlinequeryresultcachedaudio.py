@@ -56,15 +56,16 @@ class InlineQueryResultCachedAudio(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  audio_file_id,
+                 view_data=None,
                  caption=None,
                  reply_markup=None,
                  input_message_content=None,
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedAudio, self).__init__('audio', id)
+        super(InlineQueryResultCachedAudio, self).__init__('audio', action, view_data=view_data)
         self.audio_file_id = audio_file_id
 
         # Optionals

@@ -97,7 +97,7 @@ class StringRegexHandler(Handler):
         self.pass_groups = pass_groups
         self.pass_groupdict = pass_groupdict
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:

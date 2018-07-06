@@ -64,6 +64,8 @@ class ChosenInlineResult(TelegramObject):
         # Optionals
         self.location = location
         self.inline_message_id = inline_message_id
+        # Post-inserted
+        self.message = None
 
         self._id_attrs = (self.result_id,)
 

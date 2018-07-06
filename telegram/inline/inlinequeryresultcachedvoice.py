@@ -58,16 +58,17 @@ class InlineQueryResultCachedVoice(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  voice_file_id,
                  title,
+                 view_data=None,
                  caption=None,
                  reply_markup=None,
                  input_message_content=None,
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultCachedVoice, self).__init__('voice', id)
+        super(InlineQueryResultCachedVoice, self).__init__('voice', action, view_data=view_data)
         self.voice_file_id = voice_file_id
         self.title = title
 

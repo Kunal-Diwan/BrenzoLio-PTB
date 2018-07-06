@@ -72,7 +72,7 @@ class TypeHandler(Handler):
         self.type = type
         self.strict = strict
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:

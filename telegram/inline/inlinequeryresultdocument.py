@@ -71,10 +71,11 @@ class InlineQueryResultDocument(InlineQueryResult):
     """
 
     def __init__(self,
-                 id,
+                 action,
                  document_url,
                  title,
                  mime_type,
+                 view_data=None,
                  caption=None,
                  description=None,
                  reply_markup=None,
@@ -85,7 +86,7 @@ class InlineQueryResultDocument(InlineQueryResult):
                  parse_mode=None,
                  **kwargs):
         # Required
-        super(InlineQueryResultDocument, self).__init__('document', id)
+        super(InlineQueryResultDocument, self).__init__('document', action, view_data=view_data)
         self.document_url = document_url
         self.title = title
         self.mime_type = mime_type

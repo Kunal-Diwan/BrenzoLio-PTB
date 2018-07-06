@@ -83,7 +83,7 @@ class Handler(object):
         self.pass_user_data = pass_user_data
         self.pass_chat_data = pass_chat_data
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """
         This method is called to determine if an update should be handled by
         this handler instance. It should always be overridden.

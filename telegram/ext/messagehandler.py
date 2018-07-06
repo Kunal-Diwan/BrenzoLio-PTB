@@ -134,7 +134,7 @@ class MessageHandler(Handler):
                     self.edited_updates and (update.edited_message or update.edited_channel_post),
                     self.channel_post_updates and update.channel_post])
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:

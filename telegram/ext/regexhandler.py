@@ -146,7 +146,7 @@ class RegexHandler(Handler):
         self.channel_post_updates = channel_post_updates
         self.edited_updates = edited_updates
 
-    def check_update(self, update):
+    def check_update(self, update, dispatcher):
         """Determines whether an update should be passed to this handlers :attr:`callback`.
 
         Args:

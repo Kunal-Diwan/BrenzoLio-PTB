@@ -19,6 +19,8 @@
 """This module contains the classes that represent Telegram InlineQueryResult."""
 
 from telegram import TelegramObject
+from telegram.constants import NOTSET
+from telegram.flow.action import Action, get_action_id
 
 
 class InlineQueryResult(TelegramObject):
@@ -35,9 +37,27 @@ class InlineQueryResult(TelegramObject):
 
     """
 
-    def __init__(self, type, id, **kwargs):
+    def __init__(self, type, id, view_data=None, **kwargs):
         # Required
         self.type = str(type)
-        self.id = str(id)
 
+        if isinstance(id, Action):
+            self._action_id = get_action_id(id)
+            self.id = NOTSET
+            self._callback = None
+        else:
+            self.id = id
+
+        self._view_data = view_data
         self._id_attrs = (self.id,)
+
+    def insert_callback(self, callback_manager):
+        callback = callback_manager.create_callback(
+            action_id=self._action_id,
+            data=self._view_data
+        )
+
+        self._callback = callback
+        self.id = callback.id
+
+        return callback
