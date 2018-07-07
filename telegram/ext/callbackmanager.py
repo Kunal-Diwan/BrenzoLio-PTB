@@ -1,8 +1,8 @@
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 from uuid import uuid4
 
 from telegram.flow.action import get_action_id
-from telegram.utils.binaryencoder import obfuscate_id_binary, resolve_obfuscated_id
+from telegram.utils.binaryencoder import callback_id_from_query, _obfuscate_id_binary
 
 
 class CallbackNotFound(Exception):
@@ -28,7 +28,7 @@ class CallbackItem(object):
 
     def __repr__(self):
         return "CallbackItem({}, {}, {}, data={}, one_time_callback={})".format(
-            resolve_obfuscated_id(self.id),
+            callback_id_from_query(self.id),
             self.chat_id,
             self.action_id,
             type(self.model_data),
@@ -73,11 +73,8 @@ class RedisCollectionsCallbackManager(ICallbackManager):
         self.persistence = persistence
 
     def create_callback(self, action, data, random_id=True):
-        if random_id:
-            cb_id = self.create_unique_uuid()
-        else:
-            cb_id = self.get_next_id()
-            cb_id = obfuscate_id_binary(cb_id)
+
+        cb_id = self.create_unique_uuid() if random_id else self.get_next_id()
 
         callback = CallbackItem(cb_id, action, data)
         self._data[cb_id] = callback
@@ -125,7 +122,6 @@ class DictCallbackManager(ICallbackManager):
             cb_id = self.create_unique_uuid()
         else:
             cb_id = self.get_next_id()
-            cb_id = obfuscate_id_binary(cb_id)
 
         callback = CallbackItem(cb_id, action_id, data)
         self._data[cb_id] = callback

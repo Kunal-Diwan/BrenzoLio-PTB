@@ -94,6 +94,9 @@ class InlineQueryActionHandler(Handler):
 
         """
         if isinstance(update, Update) and update.inline_query:
+
+            # TODO: check the obfuscated encoded thingy
+
             if update.inline_query.id != self.action_id:
                 return False
             if self.pattern:

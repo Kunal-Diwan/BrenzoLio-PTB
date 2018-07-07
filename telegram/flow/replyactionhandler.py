@@ -16,12 +16,11 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-import re
 
-from telegram.flow.action import Action
 from telegram.ext.callbackmanager import CallbackNotFound
-from telegram.utils.binaryencoder import ZERO_CHAR1, ZERO_CHAR2, ZERO_CHAR3, resolve_obfuscated_id
 from telegram.ext.handler import Handler
+from telegram.flow.action import Action
+from telegram.utils.binaryencoder import callback_id_from_query
 
 
 class ReplyActionHandler(Handler):
@@ -112,21 +111,14 @@ class ReplyActionHandler(Handler):
 
         """
         if update.message and update.message.text:
-            match = re.match(r'^.+?([{}{}]+){}$'.format(
-                ZERO_CHAR1, ZERO_CHAR2, ZERO_CHAR3
-            ), update.message.text)
-
-            if not match:
-                return
-
-            callback_id = match.group(1)
+            callback_id = callback_id_from_query(update.message.text)
 
             try:
                 action = dispatcher.callback_manager.peek_action(callback_id)
             except CallbackNotFound:
                 raise CallbackNotFound(
                     "The callback {} is not present in this CallbackManager.".format(
-                        resolve_obfuscated_id(callback_id)
+                        callback_id_from_query(callback_id)
                     ))
 
             if action == self.action_id:

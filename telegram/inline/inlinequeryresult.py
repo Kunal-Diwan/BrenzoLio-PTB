@@ -46,7 +46,7 @@ class InlineQueryResult(TelegramObject):
             self.id = NOTSET
             self._callback = None
         else:
-            self.id = id
+            self.id = str(id)
 
         self._view_data = view_data
         self._id_attrs = (self.id,)
@@ -54,7 +54,8 @@ class InlineQueryResult(TelegramObject):
     def insert_callback(self, callback_manager):
         callback = callback_manager.create_callback(
             action_id=self._action_id,
-            data=self._view_data
+            data=self._view_data,
+            random_id=True
         )
 
         self._callback = callback

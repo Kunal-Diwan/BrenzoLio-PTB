@@ -17,8 +17,9 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains an object that represents a Telegram InlineKeyboardButton."""
-from telegram import KeyboardButton, InlineKeyboardButton, TelegramObject
-from telegram.utils.binaryencoder import ZERO_CHAR3
+from telegram import InlineKeyboardButton, KeyboardButton, TelegramObject
+from telegram.flow.action import Action
+from telegram.utils.binaryencoder import insert_callback_id
 
 
 class ActionButton(TelegramObject):
@@ -69,17 +70,40 @@ class ActionButton(TelegramObject):
     """
 
     def __init__(self,
-                 caption,
                  action,
-                 view_data=None):
+                 caption=None,  # TODO DOCS: "will override..."
+                 view_data=None,
+                 switch_inline=None,
+                 switch_inline_current_chat=None):
+
         if caption is None:
-            raise ValueError("Buttons without a text caption are not possible.")
+            if isinstance(action, Action):
+                # noinspection PyProtectedMember
+                if action._caption:
+                    caption = action.get_caption(view_data)
+                else:
+                    raise ValueError("Neither this button nor its action have a caption. Pass the caption argument or "
+                                     "set up your Action to have one.")
+            else:
+                raise ValueError("If the action is {} and not an Action object, a caption must be supplied as "
+                                 "argument to this ActionButton.".format(type(action)))
+        else:
+            caption = action.get_caption(view_data)
+
         if len(caption) > 108:
             # We have a maximum button caption length of 128 characters until they are truncated
             # server-side. We will use the remaining 20 characters to encode a random ID.
             raise ValueError("Button caption must not be longer than 108 characters.")
+        if caption in (None, ''):
+            raise ValueError("Buttons without a text caption are not possible.")
 
         self.text = caption
+
+        if switch_inline and switch_inline_current_chat:
+            raise ValueError("Cannot set both switch_inline and switch_inline_current_chat.")
+        self.switch_inline_query = switch_inline
+        self.switch_inline_query_current_chat = switch_inline_current_chat
+
         self._action_id = action
         self._callback = None
         self.callback_data = None
@@ -87,22 +111,11 @@ class ActionButton(TelegramObject):
 
         self._view_data = view_data
 
-    @classmethod
-    def from_action(cls, action, view_data=None):
-        caption = action.get_caption(view_data)
-        if caption in (None, ''):
-            raise ValueError("Buttons without a text caption are not possible.")
-        return cls(
-            caption=caption,
-            action=action.id,
-            view_data=view_data
-        )
-
     def insert_callback(self, callback_manager):
         callback = callback_manager.create_callback(
             action_id=self._action_id,
             data=self._view_data,
-            random_id=self._is_inline
+            random_id=self._is_inline and not (self.switch_inline_query or self.switch_inline_query_current_chat)
         )
 
         self._callback = callback
@@ -125,11 +138,31 @@ class ActionButton(TelegramObject):
         if not self._callback:
             raise ValueError("You need to call the insert_callback method before usage.")
 
+        if self.switch_inline_query or self.switch_inline_query_current_chat:
+            if not self._is_inline:
+                raise ValueError("switch_inline will not work with regular KeyboardButtons, "
+                                 "use an InlineKeyboardMarkup instead.")
+
         if self._is_inline:
             self.__bases__ = (InlineKeyboardButton,)
-            self.callback_data = self._callback.id
         else:
             self.__bases__ = (KeyboardButton,)
-            self.text = self.text + self._callback.id + ZERO_CHAR3
+
+        if not self._is_inline:
+            # Regular KeyboardButton
+            self.text = insert_callback_id(self.text, self._callback.id)
+        elif self.switch_inline_query:
+            # InlineKeyboardButton with switch_inline
+            self.switch_inline_query = insert_callback_id(self.switch_inline_query, self._callback.id)
+        elif self.switch_inline_query_current_chat:
+            # InlineKeyboardButton with switch_inline_current_chat
+            self.switch_inline_query_current_chat = insert_callback_id(self.switch_inline_query_current_chat,
+                                                                       self._callback.id)
+        else:
+            # InlineKeyboardButton with callback_data
+            self.callback_data = self._callback.id
+
+        print(self.text, type(self), ': ',
+              self.switch_inline_query or self.switch_inline_query_current_chat or self.callback_data)
 
         return super(ActionButton, self).to_dict()
