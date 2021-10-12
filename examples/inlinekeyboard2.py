@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # pylint: disable=W0613, C0116
 # type: ignore[union-attr]
 # This program is dedicated to the public domain under the CC0 license.
@@ -162,7 +161,7 @@ def end(update: Update, context: CallbackContext) -> None:
 
 def main():
     # Create the Updater and pass it your bot's token.
-    updater = Updater("TOKEN", use_context=True)
+    updater = Updater("TOKEN")
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher

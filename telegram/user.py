@@ -22,9 +22,13 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional, Union, Tuple
 
 from telegram import TelegramObject, constants
-from telegram.utils.helpers import mention_html as util_mention_html, DefaultValue, DEFAULT_NONE
+from telegram.utils.helpers import (
+    mention_html as util_mention_html,
+    DEFAULT_NONE,
+    DEFAULT_20,
+)
 from telegram.utils.helpers import mention_markdown as util_mention_markdown
-from telegram.utils.types import JSONDict, FileInput
+from telegram.utils.types import JSONDict, FileInput, ODVInput, DVInput
 
 if TYPE_CHECKING:
     from telegram import (
@@ -147,11 +151,11 @@ class User(TelegramObject):
             return f"https://t.me/{self.username}"
         return None
 
-    def get_profile_photos(
+    async def get_profile_photos(
         self,
         offset: int = None,
         limit: int = 100,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> Optional['UserProfilePhotos']:
         """
@@ -164,7 +168,7 @@ class User(TelegramObject):
 
         """
 
-        return self.bot.get_user_profile_photos(
+        return await self.bot.get_user_profile_photos(
             user_id=self.id,
             offset=offset,
             limit=limit,
@@ -215,11 +219,11 @@ class User(TelegramObject):
             return util_mention_html(self.id, name)
         return util_mention_html(self.id, self.full_name)
 
-    def pin_message(
+    async def pin_message(
         self,
         message_id: Union[str, int],
-        disable_notification: bool = None,
-        timeout: float = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -234,7 +238,7 @@ class User(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return self.bot.pin_chat_message(
+        return await self.bot.pin_chat_message(
             chat_id=self.id,
             message_id=message_id,
             disable_notification=disable_notification,
@@ -242,9 +246,9 @@ class User(TelegramObject):
             api_kwargs=api_kwargs,
         )
 
-    def unpin_message(
+    async def unpin_message(
         self,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         message_id: Union[str, int] = None,
     ) -> bool:
@@ -260,16 +264,16 @@ class User(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return self.bot.unpin_chat_message(
+        return await self.bot.unpin_chat_message(
             chat_id=self.id,
             timeout=timeout,
             api_kwargs=api_kwargs,
             message_id=message_id,
         )
 
-    def unpin_all_messages(
+    async def unpin_all_messages(
         self,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -285,23 +289,23 @@ class User(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return self.bot.unpin_all_chat_messages(
+        return await self.bot.unpin_all_chat_messages(
             chat_id=self.id,
             timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
-    def send_message(
+    async def send_message(
         self,
         text: str,
-        parse_mode: str = None,
-        disable_web_page_preview: bool = None,
-        disable_notification: bool = False,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
+        disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
     ) -> 'Message':
         """Shortcut for::
@@ -314,7 +318,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_message(
+        return await self.bot.send_message(
             chat_id=self.id,
             text=text,
             parse_mode=parse_mode,
@@ -328,17 +332,17 @@ class User(TelegramObject):
             entities=entities,
         )
 
-    def send_photo(
+    async def send_photo(
         self,
         photo: Union[FileInput, 'PhotoSize'],
         caption: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
-        parse_mode: str = None,
+        timeout: DVInput[float] = DEFAULT_20,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
         filename: str = None,
     ) -> 'Message':
@@ -352,7 +356,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_photo(
+        return await self.bot.send_photo(
             chat_id=self.id,
             photo=photo,
             caption=caption,
@@ -367,16 +371,16 @@ class User(TelegramObject):
             filename=filename,
         )
 
-    def send_media_group(
+    async def send_media_group(
         self,
         media: List[
             Union['InputMediaAudio', 'InputMediaDocument', 'InputMediaPhoto', 'InputMediaVideo']
         ],
-        disable_notification: bool = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
-        timeout: float = 20,
+        timeout: DVInput[float] = DEFAULT_20,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> List['Message']:
         """Shortcut for::
 
@@ -388,7 +392,7 @@ class User(TelegramObject):
             List[:class:`telegram.Message`:] On success, instance representing the message posted.
 
         """
-        return self.bot.send_media_group(
+        return await self.bot.send_media_group(
             chat_id=self.id,
             media=media,
             disable_notification=disable_notification,
@@ -398,21 +402,21 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_audio(
+    async def send_audio(
         self,
         audio: Union[FileInput, 'Audio'],
         duration: int = None,
         performer: str = None,
         title: str = None,
         caption: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
-        parse_mode: str = None,
+        timeout: DVInput[float] = DEFAULT_20,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
         filename: str = None,
     ) -> 'Message':
@@ -426,7 +430,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_audio(
+        return await self.bot.send_audio(
             chat_id=self.id,
             audio=audio,
             duration=duration,
@@ -445,10 +449,10 @@ class User(TelegramObject):
             filename=filename,
         )
 
-    def send_chat_action(
+    async def send_chat_action(
         self,
         action: str,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -461,7 +465,7 @@ class User(TelegramObject):
             :obj:`True`: On success.
 
         """
-        return self.bot.send_chat_action(
+        return await self.bot.send_chat_action(
             chat_id=self.id,
             action=action,
             timeout=timeout,
@@ -471,19 +475,19 @@ class User(TelegramObject):
     send_action = send_chat_action
     """Alias for :attr:`send_chat_action`"""
 
-    def send_contact(
+    async def send_contact(
         self,
         phone_number: str = None,
         first_name: str = None,
         last_name: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         contact: 'Contact' = None,
         vcard: str = None,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -495,7 +499,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_contact(
+        return await self.bot.send_contact(
             chat_id=self.id,
             phone_number=phone_number,
             first_name=first_name,
@@ -510,15 +514,15 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_dice(
+    async def send_dice(
         self,
-        disable_notification: bool = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         emoji: str = None,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -530,7 +534,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_dice(
+        return await self.bot.send_dice(
             chat_id=self.id,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -541,20 +545,20 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_document(
+    async def send_document(
         self,
         document: Union[FileInput, 'Document'],
         filename: str = None,
         caption: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
-        parse_mode: str = None,
+        timeout: DVInput[float] = DEFAULT_20,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
         disable_content_type_detection: bool = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
     ) -> 'Message':
         """Shortcut for::
@@ -567,7 +571,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_document(
+        return await self.bot.send_document(
             chat_id=self.id,
             document=document,
             filename=filename,
@@ -584,15 +588,15 @@ class User(TelegramObject):
             caption_entities=caption_entities,
         )
 
-    def send_game(
+    async def send_game(
         self,
         game_short_name: str,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -604,7 +608,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_game(
+        return await self.bot.send_game(
             chat_id=self.id,
             game_short_name=game_short_name,
             disable_notification=disable_notification,
@@ -615,7 +619,7 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_invoice(
+    async def send_invoice(
         self,
         title: str,
         description: str,
@@ -633,15 +637,15 @@ class User(TelegramObject):
         need_email: bool = None,
         need_shipping_address: bool = None,
         is_flexible: bool = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'InlineKeyboardMarkup' = None,
         provider_data: Union[str, object] = None,
         send_phone_number_to_provider: bool = None,
         send_email_to_provider: bool = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -653,7 +657,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_invoice(
+        return await self.bot.send_invoice(
             chat_id=self.id,
             title=title,
             description=description,
@@ -682,21 +686,21 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_location(
+    async def send_location(
         self,
         latitude: float = None,
         longitude: float = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         location: 'Location' = None,
         live_period: int = None,
         api_kwargs: JSONDict = None,
         horizontal_accuracy: float = None,
         heading: int = None,
         proximity_alert_radius: int = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -708,7 +712,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_location(
+        return await self.bot.send_location(
             chat_id=self.id,
             latitude=latitude,
             longitude=longitude,
@@ -725,7 +729,7 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_animation(
+    async def send_animation(
         self,
         animation: Union[FileInput, 'Animation'],
         duration: int = None,
@@ -733,13 +737,13 @@ class User(TelegramObject):
         height: int = None,
         thumb: FileInput = None,
         caption: str = None,
-        parse_mode: str = None,
-        disable_notification: bool = False,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
+        timeout: DVInput[float] = DEFAULT_20,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
         filename: str = None,
     ) -> 'Message':
@@ -753,7 +757,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_animation(
+        return await self.bot.send_animation(
             chat_id=self.id,
             animation=animation,
             duration=duration,
@@ -772,15 +776,15 @@ class User(TelegramObject):
             filename=filename,
         )
 
-    def send_sticker(
+    async def send_sticker(
         self,
         sticker: Union[FileInput, 'Sticker'],
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
+        timeout: DVInput[float] = DEFAULT_20,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -792,7 +796,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_sticker(
+        return await self.bot.send_sticker(
             chat_id=self.id,
             sticker=sticker,
             disable_notification=disable_notification,
@@ -803,22 +807,22 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_video(
+    async def send_video(
         self,
         video: Union[FileInput, 'Video'],
         duration: int = None,
         caption: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
+        timeout: DVInput[float] = DEFAULT_20,
         width: int = None,
         height: int = None,
-        parse_mode: str = None,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         supports_streaming: bool = None,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
         filename: str = None,
     ) -> 'Message':
@@ -832,7 +836,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_video(
+        return await self.bot.send_video(
             chat_id=self.id,
             video=video,
             duration=duration,
@@ -852,23 +856,23 @@ class User(TelegramObject):
             filename=filename,
         )
 
-    def send_venue(
+    async def send_venue(
         self,
         latitude: float = None,
         longitude: float = None,
         title: str = None,
         address: str = None,
         foursquare_id: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         venue: 'Venue' = None,
         foursquare_type: str = None,
         api_kwargs: JSONDict = None,
         google_place_id: str = None,
         google_place_type: str = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
         """Shortcut for::
 
@@ -880,7 +884,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_venue(
+        return await self.bot.send_venue(
             chat_id=self.id,
             latitude=latitude,
             longitude=longitude,
@@ -899,18 +903,18 @@ class User(TelegramObject):
             allow_sending_without_reply=allow_sending_without_reply,
         )
 
-    def send_video_note(
+    async def send_video_note(
         self,
         video_note: Union[FileInput, 'VideoNote'],
         duration: int = None,
         length: int = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
+        timeout: DVInput[float] = DEFAULT_20,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         filename: str = None,
     ) -> 'Message':
         """Shortcut for::
@@ -923,7 +927,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_video_note(
+        return await self.bot.send_video_note(
             chat_id=self.id,
             video_note=video_note,
             duration=duration,
@@ -938,18 +942,18 @@ class User(TelegramObject):
             filename=filename,
         )
 
-    def send_voice(
+    async def send_voice(
         self,
         voice: Union[FileInput, 'Voice'],
         duration: int = None,
         caption: str = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = 20,
-        parse_mode: str = None,
+        timeout: DVInput[float] = DEFAULT_20,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
         filename: str = None,
     ) -> 'Message':
@@ -963,7 +967,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_voice(
+        return await self.bot.send_voice(
             chat_id=self.id,
             voice=voice,
             duration=duration,
@@ -979,7 +983,7 @@ class User(TelegramObject):
             filename=filename,
         )
 
-    def send_poll(
+    async def send_poll(
         self,
         question: str,
         options: List[str],
@@ -989,16 +993,16 @@ class User(TelegramObject):
         allows_multiple_answers: bool = False,
         correct_option_id: int = None,
         is_closed: bool = None,
-        disable_notification: bool = None,
+        disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         explanation: str = None,
-        explanation_parse_mode: Union[str, DefaultValue, None] = DEFAULT_NONE,
+        explanation_parse_mode: ODVInput[str] = DEFAULT_NONE,
         open_period: int = None,
         close_date: Union[int, datetime] = None,
         api_kwargs: JSONDict = None,
-        allow_sending_without_reply: bool = None,
+        allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         explanation_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
     ) -> 'Message':
         """Shortcut for::
@@ -1011,7 +1015,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.send_poll(
+        return await self.bot.send_poll(
             chat_id=self.id,
             question=question,
             options=options,
@@ -1033,18 +1037,18 @@ class User(TelegramObject):
             explanation_entities=explanation_entities,
         )
 
-    def send_copy(
+    async def send_copy(
         self,
         from_chat_id: Union[str, int],
         message_id: Union[str, int],
         caption: str = None,
-        parse_mode: str = None,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         caption_entities: Union[Tuple['MessageEntity', ...], List['MessageEntity']] = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
-        allow_sending_without_reply: bool = False,
+        allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> 'MessageId':
         """Shortcut for::
@@ -1057,7 +1061,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.copy_message(
+        return await self.bot.copy_message(
             chat_id=self.id,
             from_chat_id=from_chat_id,
             message_id=message_id,
@@ -1072,18 +1076,18 @@ class User(TelegramObject):
             api_kwargs=api_kwargs,
         )
 
-    def copy_message(
+    async def copy_message(
         self,
         chat_id: Union[int, str],
         message_id: Union[str, int],
         caption: str = None,
-        parse_mode: str = None,
+        parse_mode: ODVInput[str] = DEFAULT_NONE,
         caption_entities: Union[Tuple['MessageEntity', ...], List['MessageEntity']] = None,
-        disable_notification: bool = False,
+        disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: Union[int, str] = None,
-        allow_sending_without_reply: bool = False,
+        allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> 'MessageId':
         """Shortcut for::
@@ -1096,7 +1100,7 @@ class User(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
 
         """
-        return self.bot.copy_message(
+        return await self.bot.copy_message(
             from_chat_id=self.id,
             chat_id=chat_id,
             message_id=message_id,

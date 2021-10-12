@@ -28,12 +28,13 @@ class TestParseMode:
         '<b>bold</b> <i>italic</i> <a href="http://google.com">link</a> '
         '<a href="tg://user?id=123456789">name</a>.'
     )
-    formatted_text_formatted = u'bold italic link name.'
+    formatted_text_formatted = 'bold italic link name.'
 
     @flaky(3, 1)
     @pytest.mark.timeout(10)
-    def test_send_message_with_parse_mode_markdown(self, bot, chat_id):
-        message = bot.send_message(
+    @pytest.mark.asyncio
+    async def test_send_message_with_parse_mode_markdown(self, bot, chat_id):
+        message = await bot.send_message(
             chat_id=chat_id, text=self.markdown_text, parse_mode=ParseMode.MARKDOWN
         )
 
@@ -41,7 +42,10 @@ class TestParseMode:
 
     @flaky(3, 1)
     @pytest.mark.timeout(10)
-    def test_send_message_with_parse_mode_html(self, bot, chat_id):
-        message = bot.send_message(chat_id=chat_id, text=self.html_text, parse_mode=ParseMode.HTML)
+    @pytest.mark.asyncio
+    async def test_send_message_with_parse_mode_html(self, bot, chat_id):
+        message = await bot.send_message(
+            chat_id=chat_id, text=self.html_text, parse_mode=ParseMode.HTML
+        )
 
         assert message.text == self.formatted_text_formatted

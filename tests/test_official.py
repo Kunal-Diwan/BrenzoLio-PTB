@@ -19,12 +19,12 @@
 import os
 import inspect
 
-import certifi
 import pytest
+import httpx
 from bs4 import BeautifulSoup
-from telegram.vendor.ptb_urllib3 import urllib3
 
 import telegram
+from tests.conftest import env_var_2_bool
 
 IGNORED_OBJECTS = ('ResponseParameters', 'CallbackGame')
 IGNORED_PARAMETERS = {
@@ -150,9 +150,9 @@ def check_object(h4):
 
 argvalues = []
 names = []
-http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
-request = http.request('GET', 'https://core.telegram.org/bots/api')
-soup = BeautifulSoup(request.data.decode('utf-8'), 'html.parser')
+# http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
+request = httpx.get('https://core.telegram.org/bots/api')
+soup = BeautifulSoup(request.text, 'html.parser')
 
 for thing in soup.select('h4 > a.anchor'):
     # Methods and types don't have spaces in them, luckily all other sections of the docs do
@@ -170,6 +170,8 @@ for thing in soup.select('h4 > a.anchor'):
 
 
 @pytest.mark.parametrize(('method', 'data'), argvalues=argvalues, ids=names)
-@pytest.mark.skipif(os.getenv('TEST_OFFICIAL') != 'true', reason='test_official is not enabled')
+@pytest.mark.skipif(
+    not env_var_2_bool(os.getenv('TEST_OFFICIAL')), reason='test_official is not enabled'
+)
 def test_official(method, data):
     method(data)

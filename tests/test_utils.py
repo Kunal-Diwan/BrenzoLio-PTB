@@ -17,28 +17,21 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 
-import pytest
 
-from telegram import TelegramError
-from telegram.utils.request import Request
+class TestUtils:
+    def test_promise_deprecation(self, recwarn):
+        import telegram.utils.promise  # noqa: F401
 
+        assert len(recwarn) == 1
+        assert str(recwarn[0].message) == (
+            'telegram.utils.promise is deprecated. Please use telegram.ext.utils.promise instead.'
+        )
 
-def test_replaced_unprintable_char():
-    """
-    Clients can send arbitrary bytes in callback data.
-    Make sure the correct error is raised in this case.
-    """
-    server_response = b'{"invalid utf-8": "\x80", "result": "KUKU"}'
+    def test_webhookhandler_deprecation(self, recwarn):
+        import telegram.utils.webhookhandler  # noqa: F401
 
-    assert Request._parse(server_response) == 'KUKU'
-
-
-def test_parse_illegal_json():
-    """
-    Clients can send arbitrary bytes in callback data.
-    Make sure the correct error is raised in this case.
-    """
-    server_response = b'{"invalid utf-8": "\x80", result: "KUKU"}'
-
-    with pytest.raises(TelegramError, match='Invalid server response'):
-        Request._parse(server_response)
+        assert len(recwarn) == 1
+        assert str(recwarn[0].message) == (
+            'telegram.utils.webhookhandler is deprecated. Please use '
+            'telegram.ext.utils.webhookhandler instead.'
+        )

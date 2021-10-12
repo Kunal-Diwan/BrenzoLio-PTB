@@ -1,3 +1,6 @@
+..
+    Make user to apply any changes to this file to README_RAW.rst as well!
+
 .. image:: https://github.com/python-telegram-bot/logos/blob/master/logo-text/png/ptb-logo-text_768.png?raw=true
    :align: center
    :target: https://python-telegram-bot.org
@@ -17,12 +20,16 @@ We have a vibrant community of developers helping each other in our `Telegram gr
    :target: https://pypi.org/project/python-telegram-bot/
    :alt: Supported Python versions
 
+.. image:: https://img.shields.io/badge/Bot%20API-5.0-blue?logo=telegram
+   :target: https://core.telegram.org/bots/api-changelog
+   :alt: Supported Bot API versions
+
 .. image:: https://img.shields.io/pypi/dm/python-telegram-bot
    :target: https://pypistats.org/packages/python-telegram-bot
    :alt: PyPi Package Monthly Download
 
-.. image:: https://img.shields.io/badge/docs-latest-af1a97.svg
-   :target: https://python-telegram-bot.readthedocs.io/
+.. image:: https://readthedocs.org/projects/python-telegram-bot/badge/?version=stable
+   :target: https://python-telegram-bot.readthedocs.io/en/stable/?badge=stable
    :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/l/python-telegram-bot.svg
@@ -36,7 +43,7 @@ We have a vibrant community of developers helping each other in our `Telegram gr
 .. image:: https://codecov.io/gh/python-telegram-bot/python-telegram-bot/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/python-telegram-bot/python-telegram-bot
    :alt: Code coverage
-   
+
 .. image:: http://isitmaintained.com/badge/resolution/python-telegram-bot/python-telegram-bot.svg
    :target: http://isitmaintained.com/project/python-telegram-bot/python-telegram-bot
    :alt: Median time to resolve an issue
@@ -48,7 +55,7 @@ We have a vibrant community of developers helping each other in our `Telegram gr
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
-.. image:: https://img.shields.io/badge/Telegram-Group-blue.svg
+.. image:: https://img.shields.io/badge/Telegram-Group-blue.svg?logo=telegram
    :target: https://telegram.me/pythontelegrambotgroup
    :alt: Telegram Group
 
@@ -92,6 +99,14 @@ In addition to the pure API implementation, this library features a number of hi
 make the development of bots easy and straightforward. These classes are contained in the
 ``telegram.ext`` submodule.
 
+A pure API implementation *without* ``telegram.ext`` is available as the standalone package ``python-telegram-bot-raw``.  `See here for details. <https://github.com/python-telegram-bot/python-telegram-bot/blob/master/README_RAW.rst>`_
+
+----
+Note
+----
+
+Installing both ``python-telegram-bot`` and ``python-telegram-bot-raw`` in conjunction will result in undesired side-effects, so only install *one* of both.
+
 ====================
 Telegram API support
 ====================
@@ -121,6 +136,16 @@ In case you have a previously cloned local repository already, you should initia
 .. code:: shell
 
     $ git submodule update --init --recursive
+
+---------------------
+Optional Dependencies
+---------------------
+
+PTB can be installed with optional dependencies:
+
+* ``pip install python-telegram-bot[passport]`` installs the `cryptography <https://cryptography.io>`_ library. Use this, if you want to use Telegram Passport related functionality.
+* ``pip install python-telegram-bot[ujson]`` installs the `ujson <https://pypi.org/project/ujson/>`_ library. It will then be used for JSON de- & encoding, which can bring speed up compared to the standard `json <https://docs.python.org/3/library/json.html>`_ library.
+* ``pip install python-telegram-bot[socks]`` installs the `PySocks <https://pypi.org/project/PySocks/>`_ library. Use this, if you want to work behind a Socks5 server.
 
 ===============
 Getting started
@@ -197,7 +222,6 @@ You can get help in several ways:
 4. Our `Wiki pages <https://github.com/python-telegram-bot/python-telegram-bot/wiki/>`_ offer a growing amount of resources.
 
 5. You can even ask for help on Stack Overflow using the `python-telegram-bot tag <https://stackoverflow.com/questions/tagged/python-telegram-bot>`_.
-
 
 
 ============

@@ -32,8 +32,8 @@ from telegram.error import InvalidToken, RetryAfter, TimedOut, Unauthorized
 from telegram.ext import Dispatcher, JobQueue
 from telegram.utils.deprecate import TelegramDeprecationWarning
 from telegram.utils.helpers import get_signal_name
-from telegram.utils.request import Request
-from telegram.utils.webhookhandler import WebhookAppClass, WebhookServer
+from telegram.utils.request_httpx import PtbHttpx
+from telegram.ext.utils.webhookhandler import WebhookAppClass, WebhookServer
 
 if TYPE_CHECKING:
     from telegram.ext import BasePersistence, Defaults
@@ -172,7 +172,7 @@ class Updater:
                     request_kwargs = {}
                 if 'con_pool_size' not in request_kwargs:
                     request_kwargs['con_pool_size'] = con_pool_size
-                self._request = Request(**request_kwargs)
+                self._request = PtbHttpx(**request_kwargs)
                 self.bot = Bot(
                     token,  # type: ignore[arg-type]
                     base_url,
@@ -219,7 +219,7 @@ class Updater:
         self.__lock = Lock()
         self.__threads: List[Thread] = []
 
-    def _init_thread(self, target: Callable, name: str, *args: Any, **kwargs: Any) -> None:
+    def _init_thread(self, target: Callable, name: str, *args: object, **kwargs: object) -> None:
         thr = Thread(
             target=self._thread_wrapper,
             name=f"Bot:{self.bot.id}:{name}",
@@ -229,7 +229,7 @@ class Updater:
         thr.start()
         self.__threads.append(thr)
 
-    def _thread_wrapper(self, target: Callable, *args: Any, **kwargs: Any) -> None:
+    def _thread_wrapper(self, target: Callable, *args: object, **kwargs: object) -> None:
         thr_name = current_thread().name
         self.logger.debug('%s - started', thr_name)
         try:

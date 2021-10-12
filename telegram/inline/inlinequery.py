@@ -22,7 +22,8 @@
 from typing import TYPE_CHECKING, Any, Optional, List, Union, Callable, ClassVar
 
 from telegram import Location, TelegramObject, User, constants
-from telegram.utils.types import JSONDict
+from telegram.utils.helpers import DEFAULT_NONE
+from telegram.utils.types import JSONDict, ODVInput
 
 if TYPE_CHECKING:
     from telegram import Bot, InlineQueryResult
@@ -93,7 +94,7 @@ class InlineQuery(TelegramObject):
 
         return cls(bot=bot, **data)
 
-    def answer(
+    async def answer(
         self,
         results: Union[
             List['InlineQueryResult'], Callable[[int], Optional[List['InlineQueryResult']]]
@@ -103,7 +104,7 @@ class InlineQuery(TelegramObject):
         next_offset: str = None,
         switch_pm_text: str = None,
         switch_pm_parameter: str = None,
-        timeout: float = None,
+        timeout: ODVInput[float] = DEFAULT_NONE,
         current_offset: str = None,
         api_kwargs: JSONDict = None,
         auto_pagination: bool = False,
@@ -120,17 +121,17 @@ class InlineQuery(TelegramObject):
 
         Args:
             auto_pagination (:obj:`bool`, optional): If set to :obj:`True`, :attr:`offset` will be
-                passed as :attr:`current_offset` to :meth:telegram.Bot.answer_inline_query`.
+                passed as :attr:`current_offset` to :meth:`telegram.Bot.answer_inline_query`.
                 Defaults to :obj:`False`.
 
         Raises:
-            TypeError: If both :attr:`current_offset` and `auto_pagination` are supplied.
+            TypeError: If both :attr:`current_offset` and attr:`auto_pagination` are supplied.
         """
         if current_offset and auto_pagination:
             # We raise TypeError instead of ValueError for backwards compatibility with versions
             # which didn't check this here but let Python do the checking
             raise TypeError('current_offset and auto_pagination are mutually exclusive!')
-        return self.bot.answer_inline_query(
+        return await self.bot.answer_inline_query(
             inline_query_id=self.id,
             current_offset=self.offset if auto_pagination else current_offset,
             results=results,

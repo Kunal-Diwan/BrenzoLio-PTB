@@ -31,27 +31,12 @@ from telegram import (
     TelegramDecryptionError,
 )
 
-# Generated using the scope:
-# {
-#   data: [
-#     {
-#       type: 'personal_details',
-#       native_names: true
-#     },
-#     {
-#       type: 'id_document',
-#       selfie: true,
-#       translation: true
-#     },
-#     {
-#       type: 'address_document',
-#       translation: true
-#     },
-#     'address',
-#     'email'
-#   ],
-#   v: 1
-# }
+
+# Note: All classes in telegram.credentials (except EncryptedCredentials) aren't directly tested
+# here, although they are implicitly tested. Testing for those classes was too much work and not
+# worth it.
+
+
 RAW_PASSPORT_DATA = {
     'credentials': {
         'hash': 'qB4hz2LMcXYhglwz6EvXMMyI3PURisWLXl/iCmCXcSk=',
@@ -405,7 +390,7 @@ class TestPassport:
 
     def test_bot_init_invalid_key(self, bot):
         with pytest.raises(TypeError):
-            Bot(bot.token, private_key=u'Invalid key!')
+            Bot(bot.token, private_key='Invalid key!')
 
         with pytest.raises(ValueError):
             Bot(bot.token, private_key=b'Invalid key!')
@@ -434,7 +419,8 @@ class TestPassport:
         with pytest.raises(TelegramDecryptionError):
             assert passport_data.decrypted_data
 
-    def test_mocked_download_passport_file(self, passport_data, monkeypatch):
+    @pytest.mark.asyncio
+    async def test_mocked_download_passport_file(self, passport_data, monkeypatch):
         # The files are not coming from our test bot, therefore the file id is invalid/wrong
         # when coming from this bot, so we monkeypatch the call, to make sure that Bot.get_file
         # at least gets called
@@ -442,17 +428,18 @@ class TestPassport:
         selfie = passport_data.decrypted_data[1].selfie
 
         # NOTE: file_unique_id is not used in the get_file method, so it is passed directly
-        def get_file(*_, **kwargs):
+        async def get_file(*_, **kwargs):
             return File(kwargs['file_id'], selfie.file_unique_id)
 
         monkeypatch.setattr(passport_data.bot, 'get_file', get_file)
-        file = selfie.get_file()
+        file = await selfie.get_file()
         assert file.file_id == selfie.file_id
         assert file.file_unique_id == selfie.file_unique_id
         assert file._credentials.file_hash == self.driver_license_selfie_credentials_file_hash
         assert file._credentials.secret == self.driver_license_selfie_credentials_secret
 
-    def test_mocked_set_passport_data_errors(self, monkeypatch, bot, chat_id, passport_data):
+    @pytest.mark.asyncio
+    async def test_mocked_set_passport_data_errors(self, monkeypatch, bot, chat_id, passport_data):
         def test(url, data, **kwargs):
             return (
                 data['user_id'] == chat_id
@@ -465,7 +452,7 @@ class TestPassport:
             )
 
         monkeypatch.setattr(bot.request, 'post', test)
-        message = bot.set_passport_data_errors(
+        message = await bot.set_passport_data_errors(
             chat_id,
             [
                 PassportElementErrorSelfie(

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # A library that provides a Python interface to the Telegram Bot API
 # Copyright (C) 2015-2021
@@ -22,6 +21,8 @@ import os
 import subprocess
 import sys
 from io import BytesIO
+
+import pytest
 
 from telegram import InputFile
 
@@ -68,7 +69,7 @@ class TestInputFile:
 
         # Test string file
         with caplog.at_level(logging.DEBUG):
-            assert InputFile(open('tests/data/text_file.txt', 'r')).mimetype == 'text/plain'
+            assert InputFile(open('tests/data/text_file.txt')).mimetype == 'text/plain'
 
             assert len(caplog.records) == 1
             assert caplog.records[0].getMessage().startswith('Could not parse file content')
@@ -116,13 +117,14 @@ class TestInputFile:
             == 'blah.jpg'
         )
 
-    def test_send_bytes(self, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_send_bytes(self, bot, chat_id):
         # We test this here and not at the respective test modules because it's not worth
         # duplicating the test for the different methods
         with open('tests/data/text_file.txt', 'rb') as file:
-            message = bot.send_document(chat_id, file.read())
+            message = await bot.send_document(chat_id, file.read())
 
         out = BytesIO()
-        assert message.document.get_file().download(out=out)
+        assert (await message.document.get_file()).download(out=out)
         out.seek(0)
         assert out.read().decode('utf-8') == 'PTB Rocks!'
