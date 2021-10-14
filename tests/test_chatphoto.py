@@ -21,7 +21,8 @@ import os
 import pytest
 from flaky import flaky
 
-from telegram import ChatPhoto, Voice, TelegramError, Bot
+from telegram import ChatPhoto, Voice, Bot
+from telegram.error import TelegramError
 from tests.conftest import (
     expect_bad_request,
     check_shortcut_call,
@@ -64,7 +65,6 @@ class TestChatPhoto:
         expect_bad_request(func, 'Type of file mismatch', 'Telegram did not accept the file.')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, chat_photo):
         new_file = await bot.get_file(chat_photo.small_file_id)
@@ -118,7 +118,6 @@ class TestChatPhoto:
         assert chat_photo_dict['big_file_unique_id'] == chat_photo.big_file_unique_id
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, super_group_id):
         chatphoto_file = open(os.devnull, 'rb')
@@ -127,7 +126,6 @@ class TestChatPhoto:
             await bot.set_chat_photo(chat_id=super_group_id, photo=chatphoto_file)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, super_group_id):
         with pytest.raises(TelegramError):

@@ -30,8 +30,13 @@ class TestParseMode:
     )
     formatted_text_formatted = 'bold italic link name.'
 
+    def test_slot_behaviour(self, mro_slots):
+        inst = ParseMode()
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_message_with_parse_mode_markdown(self, bot, chat_id):
         message = await bot.send_message(
@@ -41,7 +46,6 @@ class TestParseMode:
         assert message.text == self.formatted_text_formatted
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_message_with_parse_mode_html(self, bot, chat_id):
         message = await bot.send_message(

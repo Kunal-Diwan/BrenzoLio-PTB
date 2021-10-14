@@ -46,6 +46,12 @@ class TestChatPermissions:
     can_invite_users = None
     can_pin_messages = None
 
+    def test_slot_behaviour(self, chat_permissions, mro_slots):
+        inst = chat_permissions
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     def test_de_json(self, bot):
         json_dict = {
             'can_send_messages': self.can_send_messages,

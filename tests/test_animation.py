@@ -16,22 +16,21 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import os
 from pathlib import Path
 
 import pytest
 from flaky import flaky
 
-from telegram import PhotoSize, Animation, Voice, TelegramError, MessageEntity, Bot
-from telegram.error import BadRequest
-from telegram.utils.helpers import escape_markdown
+from telegram import PhotoSize, Animation, Voice, MessageEntity, Bot
+from telegram.error import BadRequest, TelegramError
+from telegram.helpers import escape_markdown
 from tests.conftest import check_shortcut_call, check_shortcut_signature, check_defaults_handling
 
 
 @pytest.fixture(scope='function')
 def animation_file():
-    f = open('tests/data/game.gif', 'rb')
+    f = Path('tests/data/game.gif').open('rb')
     yield f
     f.close()
 
@@ -39,7 +38,7 @@ def animation_file():
 @pytest.fixture(scope='class')
 @pytest.mark.asyncio
 async def animation(bot, chat_id):
-    with open('tests/data/game.gif', 'rb') as f:
+    with Path('tests/data/game.gif').open('rb') as f:
         return (
             await bot.send_animation(
                 chat_id, animation=f, timeout=50, thumb=open('tests/data/thumb.jpg', 'rb')
@@ -61,6 +60,11 @@ class TestAnimation:
     file_size = 4127
     caption = "Test *animation*"
 
+    def test_slot_behaviour(self, animation, mro_slots):
+        for attr in animation.__slots__:
+            assert getattr(animation, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(animation)) == len(set(mro_slots(animation))), "duplicate slot"
+
     def test_creation(self, animation):
         assert isinstance(animation, Animation)
         assert isinstance(animation.file_id, str)
@@ -75,7 +79,6 @@ class TestAnimation:
         assert isinstance(animation.thumb, PhotoSize)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_all_args(self, bot, chat_id, animation_file, animation, thumb_file):
         message = await bot.send_animation(
@@ -102,7 +105,6 @@ class TestAnimation:
         assert message.animation.thumb.height == self.height
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     def test_send_animation_custom_filename(self, bot, chat_id, animation_file, monkeypatch):
         def make_assertion(url, data, **kwargs):
             return data['animation'].filename == 'custom_filename'
@@ -110,9 +112,9 @@ class TestAnimation:
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
         assert bot.send_animation(chat_id, animation_file, filename='custom_filename')
+        monkeypatch.delattr(bot.request, 'post')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, animation):
         new_file = await bot.get_file(animation.file_id)
@@ -121,12 +123,11 @@ class TestAnimation:
         assert new_file.file_id == animation.file_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('game.gif')
+        new_filepath = await new_file.download('game.gif')
 
-        assert os.path.isfile('game.gif')
+        assert new_filepath.is_file()
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_animation_url_file(self, bot, chat_id, animation):
         message = await bot.send_animation(
@@ -147,7 +148,6 @@ class TestAnimation:
         assert message.animation.file_size == animation.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_animation_caption_entities(self, bot, chat_id, animation):
         test_string = 'Italic Bold Code'
@@ -164,7 +164,6 @@ class TestAnimation:
         assert message.caption_entities == entities
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_animation_default_parse_mode_1(self, default_bot, chat_id, animation_file):
@@ -178,7 +177,6 @@ class TestAnimation:
         assert message.caption == test_string
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_animation_default_parse_mode_2(self, default_bot, chat_id, animation_file):
@@ -191,7 +189,6 @@ class TestAnimation:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_animation_default_parse_mode_3(self, default_bot, chat_id, animation_file):
@@ -217,9 +214,9 @@ class TestAnimation:
         monkeypatch.setattr(bot, '_post', make_assertion)
         await bot.send_animation(chat_id, file, thumb=file)
         assert test_flag
+        monkeypatch.delattr(bot, '_post')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [
@@ -255,7 +252,6 @@ class TestAnimation:
                 )
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_resend(self, bot, chat_id, animation):
         message = await bot.send_animation(chat_id, animation.file_id)
@@ -286,7 +282,6 @@ class TestAnimation:
         animation = Animation.de_json(json_dict, bot)
         assert animation.file_id == self.animation_file_id
         assert animation.file_unique_id == self.animation_file_unique_id
-        assert animation.thumb == animation.thumb
         assert animation.file_name == self.file_name
         assert animation.mime_type == self.mime_type
         assert animation.file_size == self.file_size
@@ -306,7 +301,6 @@ class TestAnimation:
         assert animation_dict['file_size'] == animation.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, chat_id):
         animation_file = open(os.devnull, 'rb')
@@ -315,7 +309,6 @@ class TestAnimation:
             await bot.send_animation(chat_id=chat_id, animation=animation_file)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):

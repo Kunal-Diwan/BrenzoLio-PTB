@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import PassportFile, PassportElementError, Bot, File
@@ -39,6 +38,12 @@ class TestPassportFile:
     file_unique_id = 'adc3145fd2e84d95b64d68eaa22aa33e'
     file_size = 50
     file_date = 1532879128
+
+    def test_slot_behaviour(self, passport_file, mro_slots):
+        inst = passport_file
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, passport_file):
         assert passport_file.file_id == self.file_id

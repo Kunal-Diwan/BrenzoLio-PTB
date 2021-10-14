@@ -31,6 +31,12 @@ class TestChatLocation:
     location = Location(123, 456)
     address = 'The Shire'
 
+    def test_slot_behaviour(self, chat_location, mro_slots):
+        inst = chat_location
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     def test_de_json(self, bot):
         json_dict = {
             'location': self.location.to_dict(),

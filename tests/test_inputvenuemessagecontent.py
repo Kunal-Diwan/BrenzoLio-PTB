@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import InputVenueMessageContent, Location
@@ -45,6 +44,12 @@ class TestInputVenueMessageContent:
     foursquare_type = 'foursquare type'
     google_place_id = 'google place id'
     google_place_type = 'google place type'
+
+    def test_slot_behaviour(self, input_venue_message_content, mro_slots):
+        inst = input_venue_message_content
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, input_venue_message_content):
         assert input_venue_message_content.longitude == self.longitude

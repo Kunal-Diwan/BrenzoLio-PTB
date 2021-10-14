@@ -74,6 +74,11 @@ class TestCallbackQuery:
             message_id = kwargs['message_id'] == callback_query.message.message_id
         return id_ and chat_id and message_id
 
+    def test_slot_behaviour(self, callback_query, mro_slots):
+        for attr in callback_query.__slots__:
+            assert getattr(callback_query, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(callback_query)) == len(set(mro_slots(callback_query))), "same slot"
+
     def test_de_json(self, bot):
         json_dict = {
             'id': self.id_,

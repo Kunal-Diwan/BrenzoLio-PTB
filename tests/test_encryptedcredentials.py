@@ -36,6 +36,12 @@ class TestEncryptedCredentials:
     hash = 'hash'
     secret = 'secret'
 
+    def test_slot_behaviour(self, encrypted_credentials, mro_slots):
+        inst = encrypted_credentials
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     def test_expected_values(self, encrypted_credentials):
         assert encrypted_credentials.data == self.data
         assert encrypted_credentials.hash == self.hash

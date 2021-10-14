@@ -22,9 +22,9 @@ from pathlib import Path
 import pytest
 from flaky import flaky
 
-from telegram import Document, PhotoSize, TelegramError, Voice, MessageEntity, Bot
-from telegram.error import BadRequest
-from telegram.utils.helpers import escape_markdown
+from telegram import Document, PhotoSize, Voice, MessageEntity, Bot
+from telegram.error import BadRequest, TelegramError
+from telegram.helpers import escape_markdown
 from tests.conftest import check_shortcut_signature, check_shortcut_call, check_defaults_handling
 
 
@@ -70,7 +70,6 @@ class TestDocument:
         assert document.thumb.height == self.thumb_height
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_all_args(self, bot, chat_id, document_file, document, thumb_file):
         message = await bot.send_document(
@@ -97,7 +96,6 @@ class TestDocument:
         assert message.document.thumb.height == self.thumb_height
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, document):
         new_file = await bot.get_file(document.file_id)
@@ -112,7 +110,6 @@ class TestDocument:
         assert os.path.isfile('telegram.png')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_url_gif_file(self, bot, chat_id):
         message = await bot.send_document(chat_id, self.document_file_url)
@@ -130,7 +127,6 @@ class TestDocument:
         assert document.file_size == 3878
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_resend(self, bot, chat_id, document):
         message = await bot.send_document(chat_id=chat_id, document=document.file_id)
@@ -159,7 +155,6 @@ class TestDocument:
         assert message
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_document_caption_entities(self, bot, chat_id, document):
         test_string = 'Italic Bold Code'
@@ -293,7 +288,6 @@ class TestDocument:
         assert document_dict['file_size'] == document.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, chat_id):
         with open(os.devnull, 'rb') as f:
@@ -301,7 +295,6 @@ class TestDocument:
                 await bot.send_document(chat_id=chat_id, document=f)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):

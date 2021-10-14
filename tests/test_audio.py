@@ -22,14 +22,15 @@ from pathlib import Path
 import pytest
 from flaky import flaky
 
-from telegram import Audio, TelegramError, Voice, MessageEntity, Bot
-from telegram.utils.helpers import escape_markdown
+from telegram import Audio, Voice, MessageEntity, Bot
+from telegram.error import TelegramError
+from telegram.helpers import escape_markdown
 from tests.conftest import check_shortcut_call, check_shortcut_signature, check_defaults_handling
 
 
 @pytest.fixture(scope='function')
 def audio_file():
-    f = open('tests/data/telegram.mp3', 'rb')
+    f = Path('tests/data/telegram.mp3').open('rb')
     yield f
     f.close()
 
@@ -37,10 +38,10 @@ def audio_file():
 @pytest.fixture(scope='class')
 @pytest.mark.asyncio
 async def audio(bot, chat_id):
-    with open('tests/data/telegram.mp3', 'rb') as f:
+    with Path('tests/data/telegram.mp3').open('rb') as f:
         return (
             await bot.send_audio(
-                chat_id, audio=f, timeout=50, thumb=open('tests/data/thumb.jpg', 'rb')
+                chat_id, audio=f, timeout=50, thumb=Path('tests/data/thumb.jpg').open('rb')
             )
         ).audio
 
@@ -62,6 +63,11 @@ class TestAudio:
     audio_file_id = '5a3128a4d2a04750b5b58397f3b5e812'
     audio_file_unique_id = 'adc3145fd2e84d95b64d68eaa22aa33e'
 
+    def test_slot_behaviour(self, audio, mro_slots):
+        for attr in audio.__slots__:
+            assert getattr(audio, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(audio)) == len(set(mro_slots(audio))), "duplicate slot"
+
     def test_creation(self, audio):
         # Make sure file has been uploaded.
         assert isinstance(audio, Audio)
@@ -81,7 +87,6 @@ class TestAudio:
         assert audio.thumb.height == self.thumb_height
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_all_args(self, bot, chat_id, audio_file, thumb_file):
         message = await bot.send_audio(
@@ -114,7 +119,6 @@ class TestAudio:
         assert message.audio.thumb.height == self.thumb_height
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     def test_send_audio_custom_filename(self, bot, chat_id, audio_file, monkeypatch):
         def make_assertion(url, data, **kwargs):
             return data['audio'].filename == 'custom_filename'
@@ -124,7 +128,6 @@ class TestAudio:
         assert bot.send_audio(chat_id, audio_file, filename='custom_filename')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, audio):
         new_file = await bot.get_file(audio.file_id)
@@ -132,14 +135,13 @@ class TestAudio:
         assert new_file.file_size == self.file_size
         assert new_file.file_id == audio.file_id
         assert new_file.file_unique_id == audio.file_unique_id
-        assert new_file.file_path.startswith('https://')
+        assert str(new_file.file_path).startswith('https://')
 
         new_file.download('telegram.mp3')
 
-        assert os.path.isfile('telegram.mp3')
+        assert Path('telegram.mp3').is_file()
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_mp3_url_file(self, bot, chat_id, audio):
         message = await bot.send_audio(
@@ -158,7 +160,6 @@ class TestAudio:
         assert message.audio.file_size == audio.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_resend(self, bot, chat_id, audio):
         message = await bot.send_audio(chat_id=chat_id, audio=audio.file_id)
@@ -175,7 +176,6 @@ class TestAudio:
         assert message
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_audio_caption_entities(self, bot, chat_id, audio):
         test_string = 'Italic Bold Code'
@@ -192,7 +192,6 @@ class TestAudio:
         assert message.caption_entities == entities
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_audio_default_parse_mode_1(
@@ -206,7 +205,6 @@ class TestAudio:
         assert message.caption == test_string
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_audio_default_parse_mode_2(
@@ -221,7 +219,6 @@ class TestAudio:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_audio_default_parse_mode_3(
@@ -249,6 +246,7 @@ class TestAudio:
         monkeypatch.setattr(bot, '_post', make_assertion)
         await bot.send_audio(chat_id, file, thumb=file)
         assert test_flag
+        monkeypatch.delattr(bot, '_post')
 
     def test_de_json(self, bot, audio):
         json_dict = {
@@ -287,7 +285,6 @@ class TestAudio:
         assert audio_dict['file_name'] == audio.file_name
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, chat_id):
         audio_file = open(os.devnull, 'rb')
@@ -296,7 +293,6 @@ class TestAudio:
             await bot.send_audio(chat_id=chat_id, audio=audio_file)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):

@@ -40,6 +40,11 @@ class TestContact:
     last_name = 'Toledo'
     user_id = 23
 
+    def test_slot_behaviour(self, contact, mro_slots):
+        for attr in contact.__slots__:
+            assert getattr(contact, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(contact)) == len(set(mro_slots(contact))), "duplicate slot"
+
     def test_de_json_required(self, bot):
         json_dict = {'phone_number': self.phone_number, 'first_name': self.first_name}
         contact = Contact.de_json(json_dict, bot)
@@ -74,7 +79,6 @@ class TestContact:
         assert message
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [

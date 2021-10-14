@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import InputLocationMessageContent, Location
@@ -41,6 +40,12 @@ class TestInputLocationMessageContent:
     horizontal_accuracy = 50.5
     heading = 90
     proximity_alert_radius = 999
+
+    def test_slot_behaviour(self, input_location_message_content, mro_slots):
+        inst = input_location_message_content
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, input_location_message_content):
         assert input_location_message_content.longitude == self.longitude

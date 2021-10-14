@@ -31,6 +31,11 @@ class TestBotCommand:
     command = 'start'
     description = 'A command'
 
+    def test_slot_behaviour(self, bot_command, mro_slots):
+        for attr in bot_command.__slots__:
+            assert getattr(bot_command, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(bot_command)) == len(set(mro_slots(bot_command))), "duplicate slot"
+
     def test_de_json(self, bot):
         json_dict = {'command': self.command, 'description': self.description}
         bot_command = BotCommand.de_json(json_dict, bot)

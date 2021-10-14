@@ -22,9 +22,9 @@ from pathlib import Path
 import pytest
 from flaky import flaky
 
-from telegram import Audio, Voice, TelegramError, MessageEntity, Bot
-from telegram.error import BadRequest
-from telegram.utils.helpers import escape_markdown
+from telegram import Audio, Voice, MessageEntity, Bot
+from telegram.error import BadRequest, TelegramError
+from telegram.helpers import escape_markdown
 from tests.conftest import check_shortcut_call, check_shortcut_signature, check_defaults_handling
 
 
@@ -67,7 +67,6 @@ class TestVoice:
         assert voice.file_size == self.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_all_args(self, bot, chat_id, voice_file, voice):
         message = await bot.send_voice(
@@ -100,7 +99,6 @@ class TestVoice:
         assert bot.send_voice(chat_id, voice_file, filename='custom_filename')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, voice):
         new_file = await bot.get_file(voice.file_id)
@@ -115,7 +113,6 @@ class TestVoice:
         assert os.path.isfile('telegram.ogg')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_ogg_url_file(self, bot, chat_id, voice):
         message = await bot.sendVoice(chat_id, self.voice_file_url, duration=self.duration)
@@ -130,7 +127,6 @@ class TestVoice:
         assert message.voice.file_size == voice.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_resend(self, bot, chat_id, voice):
         message = await bot.sendVoice(chat_id, voice.file_id)
@@ -147,7 +143,6 @@ class TestVoice:
         assert message
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_voice_caption_entities(self, bot, chat_id, voice_file):
         test_string = 'Italic Bold Code'
@@ -280,14 +275,12 @@ class TestVoice:
         assert voice_dict['file_size'] == voice.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, chat_id):
         with pytest.raises(TelegramError):
             await bot.sendVoice(chat_id, open(os.devnull, 'rb'))
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):

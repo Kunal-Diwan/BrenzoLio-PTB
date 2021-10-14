@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import LabeledPrice, Location
@@ -30,6 +29,12 @@ def labeled_price():
 class TestLabeledPrice:
     label = 'label'
     amount = 100
+
+    def test_slot_behaviour(self, labeled_price, mro_slots):
+        inst = labeled_price
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, labeled_price):
         assert labeled_price.label == self.label

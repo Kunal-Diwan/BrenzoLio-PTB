@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# pylint: disable=W0613, C0116
-# type: ignore[union-attr]
+# pylint: disable=missing-function-docstring, unused-argument
 # This program is dedicated to the public domain under the CC0 license.
 
 """
@@ -18,21 +17,21 @@ bot.
 import logging
 from typing import Dict
 
-from telegram import ReplyKeyboardMarkup, Update
+from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
 from telegram.ext import (
-    Updater,
     CommandHandler,
     MessageHandler,
     Filters,
     ConversationHandler,
+    Updater,
     CallbackContext,
 )
+
 
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
-
 logger = logging.getLogger(__name__)
 
 CHOOSING, TYPING_REPLY, TYPING_CHOICE = range(3)
@@ -46,15 +45,13 @@ markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
 
 
 def facts_to_str(user_data: Dict[str, str]) -> str:
-    facts = list()
-
-    for key, value in user_data.items():
-        facts.append(f'{key} - {value}')
-
+    """Helper function for formatting the gathered user info."""
+    facts = [f'{key} - {value}' for key, value in user_data.items()]
     return "\n".join(facts).join(['\n', '\n'])
 
 
-def start(update: Update, context: CallbackContext) -> int:
+def start(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
+    """Start the conversation and ask user for input."""
     update.message.reply_text(
         "Hi! My name is Doctor Botter. I will hold a more complex conversation with you. "
         "Why don't you tell me something about yourself?",
@@ -64,7 +61,8 @@ def start(update: Update, context: CallbackContext) -> int:
     return CHOOSING
 
 
-def regular_choice(update: Update, context: CallbackContext) -> int:
+def regular_choice(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
+    """Ask the user for info about the selected predefined choice."""
     text = update.message.text
     context.user_data['choice'] = text
     update.message.reply_text(f'Your {text.lower()}? Yes, I would love to hear about that!')
@@ -72,15 +70,17 @@ def regular_choice(update: Update, context: CallbackContext) -> int:
     return TYPING_REPLY
 
 
-def custom_choice(update: Update, context: CallbackContext) -> int:
+def custom_choice(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
+    """Ask the user for a description of a custom category."""
     update.message.reply_text(
-        'Alright, please send me the category first, ' 'for example "Most impressive skill"'
+        'Alright, please send me the category first, for example "Most impressive skill"'
     )
 
     return TYPING_CHOICE
 
 
-def received_information(update: Update, context: CallbackContext) -> int:
+def received_information(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
+    """Store info provided by user and ask for the next category."""
     user_data = context.user_data
     text = update.message.text
     category = user_data['choice']
@@ -97,13 +97,15 @@ def received_information(update: Update, context: CallbackContext) -> int:
     return CHOOSING
 
 
-def done(update: Update, context: CallbackContext) -> int:
+def done(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
+    """Display the gathered info and end the conversation."""
     user_data = context.user_data
     if 'choice' in user_data:
         del user_data['choice']
 
     update.message.reply_text(
-        f"I learned these facts about you: {facts_to_str(user_data)} Until next time!"
+        f"I learned these facts about you: {facts_to_str(user_data)}Until next time!",
+        reply_markup=ReplyKeyboardRemove(),
     )
 
     user_data.clear()
@@ -111,8 +113,9 @@ def done(update: Update, context: CallbackContext) -> int:
 
 
 def main() -> None:
+    """Run the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater("TOKEN")
+    updater = Updater.builder().token("TOKEN").build()
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher

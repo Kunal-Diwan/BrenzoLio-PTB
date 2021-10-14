@@ -77,12 +77,20 @@ class TestTelegramObject:
 
     def test_to_dict_private_attribute(self):
         class TelegramObjectSubclass(TelegramObject):
+            __slots__ = ('a', '_b')  # Added slots so that the attrs are converted to dict
+
             def __init__(self):
                 self.a = 1
                 self._b = 2
 
         subclass_instance = TelegramObjectSubclass()
         assert subclass_instance.to_dict() == {'a': 1}
+
+    def test_slot_behaviour(self, mro_slots):
+        inst = TelegramObject()
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_meaningless_comparison(self, recwarn):
         expected_warning = "Objects of type TGO can not be meaningfully tested for equivalence."
@@ -93,13 +101,14 @@ class TestTelegramObject:
         a = TGO()
         b = TGO()
         assert a == b
-        assert len(recwarn) == 2
+        assert len(recwarn) == 1
         assert str(recwarn[0].message) == expected_warning
-        assert str(recwarn[1].message) == expected_warning
+        assert recwarn[0].filename == __file__, "wrong stacklevel"
 
     def test_meaningful_comparison(self, recwarn):
         class TGO(TelegramObject):
-            _id_attrs = (1,)
+            def __init__(self):
+                self._id_attrs = (1,)
 
         a = TGO()
         b = TGO()

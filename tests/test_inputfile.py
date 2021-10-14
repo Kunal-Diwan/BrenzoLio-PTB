@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import logging
-import os
 import subprocess
 import sys
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 
@@ -28,18 +28,21 @@ from telegram import InputFile
 
 
 class TestInputFile:
-    png = os.path.join('tests', 'data', 'game.png')
+    png = Path('tests/data/game.png')
+
+    def test_slot_behaviour(self, mro_slots):
+        inst = InputFile(BytesIO(b'blah'), filename='tg.jpg')
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_subprocess_pipe(self):
-        if sys.platform == 'win32':
-            cmd = ['type', self.png]
-        else:
-            cmd = ['cat', self.png]
-
+        cmd_str = 'type' if sys.platform == 'win32' else 'cat'
+        cmd = [cmd_str, str(self.png)]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=(sys.platform == 'win32'))
         in_file = InputFile(proc.stdout)
 
-        assert in_file.input_file_content == open(self.png, 'rb').read()
+        assert in_file.input_file_content == self.png.read_bytes()
         assert in_file.mimetype == 'image/png'
         assert in_file.filename == 'image.png'
 
@@ -121,7 +124,7 @@ class TestInputFile:
     async def test_send_bytes(self, bot, chat_id):
         # We test this here and not at the respective test modules because it's not worth
         # duplicating the test for the different methods
-        with open('tests/data/text_file.txt', 'rb') as file:
+        with Path('tests/data/text_file.txt').open('rb') as file:
             message = await bot.send_document(chat_id, file.read())
 
         out = BytesIO()

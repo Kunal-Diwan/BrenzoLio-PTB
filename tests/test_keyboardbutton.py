@@ -16,11 +16,9 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
-from telegram import KeyboardButton, InlineKeyboardButton
-from telegram.keyboardbuttonpolltype import KeyboardButtonPollType
+from telegram import KeyboardButton, InlineKeyboardButton, KeyboardButtonPollType
 
 
 @pytest.fixture(scope='class')
@@ -38,6 +36,12 @@ class TestKeyboardButton:
     request_location = True
     request_contact = True
     request_poll = KeyboardButtonPollType("quiz")
+
+    def test_slot_behaviour(self, keyboard_button, mro_slots):
+        inst = keyboard_button
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, keyboard_button):
         assert keyboard_button.text == self.text

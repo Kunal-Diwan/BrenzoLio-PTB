@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import BotCommand, User, ProximityAlertTriggered
@@ -35,6 +34,12 @@ class TestProximityAlertTriggered:
     traveler = User(1, 'foo', False)
     watcher = User(2, 'bar', False)
     distance = 42
+
+    def test_slot_behaviour(self, proximity_alert_triggered, mro_slots):
+        inst = proximity_alert_triggered
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_de_json(self, bot):
         json_dict = {

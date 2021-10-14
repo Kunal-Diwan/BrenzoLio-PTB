@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import LoginUrl
@@ -37,6 +36,11 @@ class TestLoginUrl:
     forward_text = "Send me forward!"
     bot_username = "botname"
     request_write_access = True
+
+    def test_slot_behaviour(self, login_url, mro_slots):
+        for attr in login_url.__slots__:
+            assert getattr(login_url, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(login_url)) == len(set(mro_slots(login_url))), "duplicate slot"
 
     def test_to_dict(self, login_url):
         login_url_dict = login_url.to_dict()

@@ -22,9 +22,9 @@ from pathlib import Path
 import pytest
 from flaky import flaky
 
-from telegram import Sticker, TelegramError, PhotoSize, InputFile, MessageEntity, Bot
-from telegram.error import BadRequest
-from telegram.utils.helpers import escape_markdown
+from telegram import Sticker, PhotoSize, InputFile, MessageEntity, Bot
+from telegram.error import BadRequest, TelegramError
+from telegram.helpers import escape_markdown
 from tests.conftest import (
     expect_bad_request,
     check_shortcut_call,
@@ -92,7 +92,6 @@ class TestPhoto:
         assert thumb.file_size == 9331
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_photo_all_args(self, bot, chat_id, photo_file, thumb, photo):
         message = await bot.send_photo(
@@ -134,7 +133,6 @@ class TestPhoto:
         assert bot.send_photo(chat_id, photo_file, filename='custom_filename')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_photo_parse_mode_markdown(self, bot, chat_id, photo_file, thumb, photo):
         message = await bot.send_photo(
@@ -162,7 +160,6 @@ class TestPhoto:
         assert len(message.caption_entities) == 1
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_photo_parse_mode_html(self, bot, chat_id, photo_file, thumb, photo):
         message = await bot.send_photo(
@@ -190,7 +187,6 @@ class TestPhoto:
         assert len(message.caption_entities) == 1
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_photo_caption_entities(self, bot, chat_id, photo_file, thumb, photo):
         test_string = 'Italic Bold Code'
@@ -305,7 +301,6 @@ class TestPhoto:
                 )
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, photo):
         new_file = await bot.getFile(photo.file_id)
@@ -319,7 +314,6 @@ class TestPhoto:
         assert os.path.isfile('telegram.jpg') is True
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_url_jpg_file(self, bot, chat_id, thumb, photo):
         message = await bot.send_photo(chat_id, photo=self.photo_file_url)
@@ -343,7 +337,6 @@ class TestPhoto:
         assert message.photo[1].file_size == photo.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_url_png_file(self, bot, chat_id):
         message = await bot.send_photo(
@@ -359,7 +352,6 @@ class TestPhoto:
         assert photo.file_unique_id != ''
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_url_gif_file(self, bot, chat_id):
         message = await bot.send_photo(
@@ -375,7 +367,6 @@ class TestPhoto:
         assert photo.file_unique_id != ''
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_file_unicode_filename(self, bot, chat_id):
         """
@@ -393,7 +384,6 @@ class TestPhoto:
         assert photo.file_unique_id != ''
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_bytesio_jpg_file(self, bot, chat_id):
         file_name = 'tests/data/telegram_no_standard_header.jpg'
@@ -432,7 +422,6 @@ class TestPhoto:
         assert message
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_resend(self, bot, chat_id, photo):
         message = await bot.send_photo(chat_id=chat_id, photo=photo.file_id)
@@ -484,14 +473,12 @@ class TestPhoto:
         assert photo_dict['file_size'] == photo.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, chat_id):
         with pytest.raises(TelegramError):
             await bot.send_photo(chat_id=chat_id, photo=open(os.devnull, 'rb'))
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):

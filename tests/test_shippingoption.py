@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import LabeledPrice, ShippingOption, Voice
@@ -33,6 +32,12 @@ class TestShippingOption:
     id_ = 'id'
     title = 'title'
     prices = [LabeledPrice('Fish Container', 100), LabeledPrice('Premium Fish Container', 1000)]
+
+    def test_slot_behaviour(self, shipping_option, mro_slots):
+        inst = shipping_option
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, shipping_option):
         assert shipping_option.id == self.id_

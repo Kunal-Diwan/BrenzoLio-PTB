@@ -52,6 +52,12 @@ class TestInlineQueryResultCachedAudio:
     input_message_content = InputTextMessageContent('input_message_content')
     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('reply_markup')]])
 
+    def test_slot_behaviour(self, inline_query_result_cached_audio, mro_slots):
+        inst = inline_query_result_cached_audio
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     def test_expected_values(self, inline_query_result_cached_audio):
         assert inline_query_result_cached_audio.type == self.type_
         assert inline_query_result_cached_audio.id == self.id_

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# pylint: disable=W0613, C0116
-# type: ignore[union-attr]
+# pylint: disable=missing-function-docstring, unused-argument
 # This program is dedicated to the public domain under the CC0 license.
 
 """Simple inline keyboard bot with multiple CallbackQueryHandlers.
@@ -18,18 +17,18 @@ Press Ctrl-C on the command line to stop the bot.
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
-    Updater,
     CommandHandler,
     CallbackQueryHandler,
     ConversationHandler,
+    Updater,
     CallbackContext,
 )
+
 
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
-
 logger = logging.getLogger(__name__)
 
 # Stages
@@ -38,7 +37,7 @@ FIRST, SECOND = range(2)
 ONE, TWO, THREE, FOUR = range(4)
 
 
-def start(update: Update, context: CallbackContext) -> None:
+def start(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Send message on `/start`."""
     # Get user that sent /start and log his name
     user = update.message.from_user
@@ -60,7 +59,7 @@ def start(update: Update, context: CallbackContext) -> None:
     return FIRST
 
 
-def start_over(update: Update, context: CallbackContext) -> None:
+def start_over(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Prompt same text & keyboard as `start` does but not as new message"""
     # Get CallbackQuery from Update
     query = update.callback_query
@@ -81,7 +80,7 @@ def start_over(update: Update, context: CallbackContext) -> None:
     return FIRST
 
 
-def one(update: Update, context: CallbackContext) -> None:
+def one(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Show new choice of buttons"""
     query = update.callback_query
     query.answer()
@@ -98,7 +97,7 @@ def one(update: Update, context: CallbackContext) -> None:
     return FIRST
 
 
-def two(update: Update, context: CallbackContext) -> None:
+def two(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Show new choice of buttons"""
     query = update.callback_query
     query.answer()
@@ -115,7 +114,7 @@ def two(update: Update, context: CallbackContext) -> None:
     return FIRST
 
 
-def three(update: Update, context: CallbackContext) -> None:
+def three(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Show new choice of buttons"""
     query = update.callback_query
     query.answer()
@@ -133,14 +132,14 @@ def three(update: Update, context: CallbackContext) -> None:
     return SECOND
 
 
-def four(update: Update, context: CallbackContext) -> None:
+def four(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Show new choice of buttons"""
     query = update.callback_query
     query.answer()
     keyboard = [
         [
             InlineKeyboardButton("2", callback_data=str(TWO)),
-            InlineKeyboardButton("4", callback_data=str(FOUR)),
+            InlineKeyboardButton("3", callback_data=str(THREE)),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -150,18 +149,20 @@ def four(update: Update, context: CallbackContext) -> None:
     return FIRST
 
 
-def end(update: Update, context: CallbackContext) -> None:
+def end(update: Update, context: CallbackContext.DEFAULT_TYPE) -> int:
     """Returns `ConversationHandler.END`, which tells the
-    ConversationHandler that the conversation is over"""
+    ConversationHandler that the conversation is over.
+    """
     query = update.callback_query
     query.answer()
     query.edit_message_text(text="See you next time!")
     return ConversationHandler.END
 
 
-def main():
+def main() -> None:
+    """Run the bot."""
     # Create the Updater and pass it your bot's token.
-    updater = Updater("TOKEN")
+    updater = Updater.builder().token("TOKEN").build()
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
@@ -189,8 +190,7 @@ def main():
         fallbacks=[CommandHandler('start', start)],
     )
 
-    # Add ConversationHandler to dispatcher that will be used for handling
-    # updates
+    # Add ConversationHandler to dispatcher that will be used for handling updates
     dispatcher.add_handler(conv_handler)
 
     # Start the Bot

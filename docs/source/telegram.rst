@@ -1,6 +1,3 @@
-.. include:: telegram.ext.rst
-
-
 telegram package
 ================
 
@@ -10,18 +7,32 @@ telegram package
     telegram.audio
     telegram.bot
     telegram.botcommand
+    telegram.botcommandscope
+    telegram.botcommandscopedefault
+    telegram.botcommandscopeallprivatechats
+    telegram.botcommandscopeallgroupchats
+    telegram.botcommandscopeallchatadministrators
+    telegram.botcommandscopechat
+    telegram.botcommandscopechatadministrators
+    telegram.botcommandscopechatmember
     telegram.callbackquery
     telegram.chat
     telegram.chataction
+    telegram.chatinvitelink
     telegram.chatlocation
     telegram.chatmember
+    telegram.chatmemberowner
+    telegram.chatmemberadministrator
+    telegram.chatmembermember
+    telegram.chatmemberrestricted
+    telegram.chatmemberleft
+    telegram.chatmemberbanned
+    telegram.chatmemberupdated
     telegram.chatpermissions
     telegram.chatphoto
-    telegram.constants
     telegram.contact
     telegram.dice
     telegram.document
-    telegram.error
     telegram.file
     telegram.forcereply
     telegram.inlinekeyboardbutton
@@ -38,6 +49,7 @@ telegram package
     telegram.location
     telegram.loginurl
     telegram.message
+    telegram.messageautodeletetimerchanged
     telegram.messageid
     telegram.messageentity
     telegram.parsemode
@@ -57,6 +69,10 @@ telegram package
     telegram.video
     telegram.videonote
     telegram.voice
+    telegram.voicechatstarted
+    telegram.voicechatended
+    telegram.voicechatscheduled
+    telegram.voicechatparticipantsinvited
     telegram.webhookinfo
 
 Stickers
@@ -100,6 +116,7 @@ Inline Mode
     telegram.inputlocationmessagecontent
     telegram.inputvenuemessagecontent
     telegram.inputcontactmessagecontent
+    telegram.inputinvoicemessagecontent
     telegram.choseninlineresult
 
 Payments
@@ -132,11 +149,14 @@ Passport
 
     telegram.passportelementerror
     telegram.passportelementerrorfile
+    telegram.passportelementerrorfiles
     telegram.passportelementerrorreverseside
     telegram.passportelementerrorfrontside
-    telegram.passportelementerrorfiles
     telegram.passportelementerrordatafield
-    telegram.passportelementerrorfile
+    telegram.passportelementerrorselfie
+    telegram.passportelementerrortranslationfile
+    telegram.passportelementerrortranslationfiles
+    telegram.passportelementerrorunspecified
     telegram.credentials
     telegram.datacredentials
     telegram.securedata
@@ -150,4 +170,13 @@ Passport
     telegram.encryptedpassportelement
     telegram.encryptedcredentials
 
-.. include:: telegram.utils.rst
+Auxiliary modules
+-----------------
+
+.. toctree::
+
+    telegram.constants
+    telegram.error
+    telegram.helpers
+    telegram.request
+    telegram.warnings

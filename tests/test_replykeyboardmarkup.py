@@ -40,7 +40,6 @@ class TestReplyKeyboardMarkup:
     selective = True
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_message_with_reply_keyboard_markup(
         self, bot, chat_id, reply_keyboard_markup
@@ -50,7 +49,6 @@ class TestReplyKeyboardMarkup:
         assert message.text == 'Text'
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_message_with_data_markup(self, bot, chat_id):
         message = await bot.send_message(

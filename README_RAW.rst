@@ -20,7 +20,7 @@ We have a vibrant community of developers helping each other in our `Telegram gr
    :target: https://pypi.org/project/python-telegram-bot-raw/
    :alt: Supported Python versions
 
-.. image:: https://img.shields.io/badge/Bot%20API-5.0-blue?logo=telegram
+.. image:: https://img.shields.io/badge/Bot%20API-5.3-blue?logo=telegram
    :target: https://core.telegram.org/bots/api-changelog
    :alt: Supported Bot API versions
 
@@ -59,10 +59,6 @@ We have a vibrant community of developers helping each other in our `Telegram gr
    :target: https://telegram.me/pythontelegrambotgroup
    :alt: Telegram Group
 
-.. image:: https://img.shields.io/badge/IRC-Channel-blue.svg
-   :target: https://webchat.freenode.net/?channels=##python-telegram-bot
-   :alt: IRC Bridge
-
 =================
 Table of contents
 =================
@@ -91,7 +87,7 @@ Introduction
 
 This library provides a pure Python, lightweight interface for the
 `Telegram Bot API <https://core.telegram.org/bots/api>`_.
-It's compatible with Python versions 3.6+. PTB-Raw might also work on `PyPy <http://pypy.org/>`_, though there have been a lot of issues before. Hence, PyPy is not officially supported.
+It's compatible with Python versions **3.7+**. PTB-Raw might also work on `PyPy <http://pypy.org/>`_, though there have been a lot of issues before. Hence, PyPy is not officially supported.
 
 ``python-telegram-bot-raw`` is part of the `python-telegram-bot <https://python-telegram-bot.org>`_ ecosystem and provides the pure API functionality extracted from PTB. It therefore does *not* have independent release schedules, changelogs or documentation. Please consult the PTB resources.
 
@@ -105,7 +101,7 @@ Installing both ``python-telegram-bot`` and ``python-telegram-bot-raw`` in conju
 Telegram API support
 ====================
 
-All types and methods of the Telegram Bot API **5.0** are supported.
+All types and methods of the Telegram Bot API **5.3** are supported.
 
 ==========
 Installing
@@ -144,7 +140,7 @@ Optional Dependencies
 PTB can be installed with optional dependencies:
 
 * ``pip install python-telegram-bot-raw[passport]`` installs the `cryptography <https://cryptography.io>`_ library. Use this, if you want to use Telegram Passport related functionality.
-* ``pip install python-telegram-bot-raw[ujson]`` installs the `ujson <https://pypi.org/project/ujson/>`_ library. It will then be used for JSON de- & encoding, which can bring speed up compared to the standard `json <https://docs.python.org/3/library/json.html>`_ library.
+* ``pip install python-telegram-bot-raw[json]`` installs the `ujson <https://pypi.org/project/ujson/>`_ library. It will then be used for JSON de- & encoding, which can bring speed up compared to the standard `json <https://docs.python.org/3/library/json.html>`_ library.
 
 ===============
 Getting started
@@ -198,19 +194,22 @@ You can get help in several ways:
 
 1. We have a vibrant community of developers helping each other in our `Telegram group <https://telegram.me/pythontelegrambotgroup>`_. Join us!
 
-2. In case you are unable to join our group due to Telegram restrictions, you can use our `IRC channel <https://webchat.freenode.net/?channels=##python-telegram-bot>`_.
+2. Report bugs, request new features or ask questions by `creating an issue <https://github.com/python-telegram-bot/python-telegram-bot/issues/new/choose>`_ or `a discussion <https://github.com/python-telegram-bot/python-telegram-bot/discussions/new>`_.
 
-3. Report bugs, request new features or ask questions by `creating an issue <https://github.com/python-telegram-bot/python-telegram-bot/issues/new/choose>`_ or `a discussion <https://github.com/python-telegram-bot/python-telegram-bot/discussions/new>`_.
+3. Our `Wiki pages <https://github.com/python-telegram-bot/python-telegram-bot/wiki/>`_ offer a growing amount of resources.
 
-4. Our `Wiki pages <https://github.com/python-telegram-bot/python-telegram-bot/wiki/>`_ offer a growing amount of resources.
-
-5. You can even ask for help on Stack Overflow using the `python-telegram-bot tag <https://stackoverflow.com/questions/tagged/python-telegram-bot>`_.
+4. You can even ask for help on Stack Overflow using the `python-telegram-bot tag <https://stackoverflow.com/questions/tagged/python-telegram-bot>`_.
 
 ============
 Contributing
 ============
 
 Contributions of all sizes are welcome. Please review our `contribution guidelines <https://github.com/python-telegram-bot/python-telegram-bot/blob/master/.github/CONTRIBUTING.rst>`_ to get started. You can also help by `reporting bugs <https://github.com/python-telegram-bot/python-telegram-bot/issues/new>`_.
+
+========
+Donating
+========
+Occasionally we are asked if we accept donations to support the development. While we appreciate the thought, maintaining PTB is our hobby and we have almost no running costs for it. We therefore have nothing set up to accept donations. If you still want to donate, we kindly ask you to donate to another open source project/initiative of your choice instead.
 
 =======
 License

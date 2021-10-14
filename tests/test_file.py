@@ -23,7 +23,8 @@ from tempfile import TemporaryFile, mkstemp
 import pytest
 from flaky import flaky
 
-from telegram import File, TelegramError, Voice
+from telegram import File, Voice
+from telegram.error import TelegramError
 
 
 @pytest.fixture(scope='class')
@@ -57,6 +58,11 @@ class TestFile:
     file_size = 28232
     file_content = 'Saint-Saëns'.encode()  # Intentionally contains unicode chars.
 
+    def test_slot_behaviour(self, file, mro_slots):
+        for attr in file.__slots__:
+            assert getattr(file, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(file)) == len(set(mro_slots(file))), "duplicate slot"
+
     def test_de_json(self, bot):
         json_dict = {
             'file_id': self.file_id,
@@ -81,7 +87,6 @@ class TestFile:
         assert file_dict['file_size'] == file.file_size
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_get_empty_file_id(self, bot):
         with pytest.raises(TelegramError):
@@ -89,54 +94,57 @@ class TestFile:
 
     @pytest.mark.asyncio
     async def test_download_mutually_exclusive(self, file):
-        with pytest.raises(ValueError, match='custom_path and out are mutually exclusive'):
+        with pytest.raises(ValueError, match='`custom_path` and `out` are mutually exclusive'):
             await file.download('custom_path', 'out')
 
     def test_download(self, monkeypatch, file):
         def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr('telegram.utils.request.Request.retrieve', test)
+        monkeypatch.setattr('telegram.request.Request.retrieve', test)
         out_file = file.download()
 
         try:
-            with open(out_file, 'rb') as fobj:
-                assert fobj.read() == self.file_content
+            assert out_file.read_bytes() == self.file_content
         finally:
-            os.unlink(out_file)
+            out_file.unlink()
 
     @pytest.mark.asyncio
     async def test_download_local_file(self, local_file):
-        assert await local_file.download() == local_file.file_path
+        assert await local_file.download() == Path(local_file.file_path)
 
-    def test_download_custom_path(self, monkeypatch, file):
+    @pytest.mark.parametrize(
+        'custom_path_type', [str, Path], ids=['str custom_path', 'pathlib.Path custom_path']
+    )
+    def test_download_custom_path(self, monkeypatch, file, custom_path_type):
         def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr('telegram.utils.request.Request.retrieve', test)
+        monkeypatch.setattr('telegram.request.Request.retrieve', test)
         file_handle, custom_path = mkstemp()
+        custom_path = Path(custom_path)
         try:
-            out_file = file.download(custom_path)
+            out_file = file.download(custom_path_type(custom_path))
             assert out_file == custom_path
-
-            with open(out_file, 'rb') as fobj:
-                assert fobj.read() == self.file_content
+            assert out_file.read_bytes() == self.file_content
         finally:
             os.close(file_handle)
-            os.unlink(custom_path)
+            custom_path.unlink()
 
+    @pytest.mark.parametrize(
+        'custom_path_type', [str, Path], ids=['str custom_path', 'pathlib.Path custom_path']
+    )
     @pytest.mark.asyncio
-    async def test_download_custom_path_local_file(self, local_file):
+    async def test_download_custom_path_local_file(self, local_file, custom_path_type):
         file_handle, custom_path = mkstemp()
+        custom_path = Path(custom_path)
         try:
-            out_file = await local_file.download(custom_path)
+            out_file = await local_file.download(custom_path_type(custom_path))
             assert out_file == custom_path
-
-            with open(out_file, 'rb') as fobj:
-                assert fobj.read() == self.file_content
+            assert out_file.read_bytes() == self.file_content
         finally:
             os.close(file_handle)
-            os.unlink(custom_path)
+            custom_path.unlink()
 
     def test_download_no_filename(self, monkeypatch, file):
         def test(*args, **kwargs):
@@ -144,21 +152,20 @@ class TestFile:
 
         file.file_path = None
 
-        monkeypatch.setattr('telegram.utils.request.Request.retrieve', test)
+        monkeypatch.setattr('telegram.request.Request.retrieve', test)
         out_file = file.download()
 
-        assert out_file[-len(file.file_id) :] == file.file_id
+        assert str(out_file)[-len(file.file_id) :] == file.file_id
         try:
-            with open(out_file, 'rb') as fobj:
-                assert fobj.read() == self.file_content
+            assert out_file.read_bytes() == self.file_content
         finally:
-            os.unlink(out_file)
+            out_file.unlink()
 
     def test_download_file_obj(self, monkeypatch, file):
         def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr('telegram.utils.request.Request.retrieve', test)
+        monkeypatch.setattr('telegram.request.Request.retrieve', test)
         with TemporaryFile() as custom_fobj:
             out_fobj = file.download(out=custom_fobj)
             assert out_fobj is custom_fobj
@@ -180,7 +187,7 @@ class TestFile:
         def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr('telegram.utils.request.Request.retrieve', test)
+        monkeypatch.setattr('telegram.request.Request.retrieve', test)
 
         # Check that a download to a newly allocated bytearray works.
         buf = await file.download_as_bytearray()

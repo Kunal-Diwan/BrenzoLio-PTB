@@ -22,9 +22,9 @@ from pathlib import Path
 import pytest
 from flaky import flaky
 
-from telegram import Video, TelegramError, Voice, PhotoSize, MessageEntity, Bot
-from telegram.error import BadRequest
-from telegram.utils.helpers import escape_markdown
+from telegram import Video, Voice, PhotoSize, MessageEntity, Bot
+from telegram.error import BadRequest, TelegramError
+from telegram.helpers import escape_markdown
 from tests.conftest import check_shortcut_call, check_shortcut_signature, check_defaults_handling
 
 
@@ -83,7 +83,6 @@ class TestVideo:
         assert video.mime_type == self.mime_type
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_all_args(self, bot, chat_id, video_file, video, thumb_file):
         message = await bot.send_video(
@@ -128,7 +127,6 @@ class TestVideo:
         assert bot.send_video(chat_id, video_file, filename='custom_filename')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, video):
         new_file = await bot.get_file(video.file_id)
@@ -143,7 +141,6 @@ class TestVideo:
         assert os.path.isfile('telegram.mp4')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_mp4_file_url(self, bot, chat_id, video):
         message = await bot.send_video(chat_id, self.video_file_url, caption=self.caption)
@@ -170,7 +167,6 @@ class TestVideo:
         assert message.caption == self.caption
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_video_caption_entities(self, bot, chat_id, video):
         test_string = 'Italic Bold Code'
@@ -187,7 +183,6 @@ class TestVideo:
         assert message.caption_entities == entities
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_resend(self, bot, chat_id, video):
         message = await bot.send_video(chat_id, video.file_id)
@@ -328,14 +323,12 @@ class TestVideo:
         assert video_dict['file_name'] == video.file_name
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file(self, bot, chat_id):
         with pytest.raises(TelegramError):
             await bot.send_video(chat_id, open(os.devnull, 'rb'))
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):

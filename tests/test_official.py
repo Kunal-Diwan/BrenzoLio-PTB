@@ -18,6 +18,7 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
 import inspect
+from typing import List
 
 import pytest
 import httpx
@@ -36,6 +37,14 @@ IGNORED_PARAMETERS = {
     'timeout',
     'bot',
     'api_kwargs',
+    'kwargs',
+}
+
+ignored_param_requirements = {  # Ignore these since there's convenience params in them (eg. Venue)
+    'send_location': {'latitude', 'longitude'},
+    'edit_message_live_location': {'latitude', 'longitude'},
+    'send_venue': {'latitude', 'longitude', 'title', 'address'},
+    'send_contact': {'phone_number', 'first_name'},
 }
 
 
@@ -47,7 +56,8 @@ def find_next_sibling_until(tag, name, until):
             return sibling
 
 
-def parse_table(h4):
+def parse_table(h4) -> List[List[str]]:
+    """Parses the Telegram doc table and has an output of a 2D list."""
     table = find_next_sibling_until(h4, 'table', h4.find_next_sibling('h4'))
     if not table:
         return []
@@ -58,8 +68,8 @@ def parse_table(h4):
 
 
 def check_method(h4):
-    name = h4.text
-    method = getattr(telegram.Bot, name)
+    name = h4.text  # name of the method in telegram's docs.
+    method = getattr(telegram.Bot, name)  # Retrieve our lib method
     table = parse_table(h4)
 
     # Check arguments based on source
@@ -69,8 +79,11 @@ def check_method(h4):
     for parameter in table:
         param = sig.parameters.get(parameter[0])
         assert param is not None, f"Parameter {parameter[0]} not found in {method.__name__}"
+
         # TODO: Check type via docstring
-        # TODO: Check if optional or required
+        assert check_required_param(
+            parameter, param.name, sig, method.__name__
+        ), f'Param {param.name!r} of method {method.__name__!r} requirement mismatch!'
         checked.append(parameter[0])
 
     ignored = IGNORED_PARAMETERS.copy()
@@ -89,8 +102,6 @@ def check_method(h4):
         ]
     ):
         ignored |= {'filename'}  # Convenience parameter
-    elif name == 'setGameScore':
-        ignored |= {'edit_message'}  # TODO: Now deprecated, so no longer in telegrams docs
     elif name == 'sendContact':
         ignored |= {'contact'}  # Added for ease of use
     elif name in ['sendLocation', 'editMessageLiveLocation']:
@@ -108,36 +119,46 @@ def check_object(h4):
     obj = getattr(telegram, name)
     table = parse_table(h4)
 
-    # Check arguments based on source
-    sig = inspect.signature(obj, follow_wrapped=True)
+    # Check arguments based on source. Makes sure to only check __init__'s signature & nothing else
+    sig = inspect.signature(obj.__init__, follow_wrapped=True)
 
-    checked = []
+    checked = set()
     for parameter in table:
         field = parameter[0]
         if field == 'from':
             field = 'from_user'
         elif (
-            name.startswith('InlineQueryResult') or name.startswith('InputMedia')
+            name.startswith('InlineQueryResult')
+            or name.startswith('InputMedia')
+            or name.startswith('BotCommandScope')
         ) and field == 'type':
             continue
-        elif name.startswith('PassportElementError') and field == 'source':
+        elif (name.startswith('ChatMember')) and field == 'status':  # We autofill the status
             continue
-        elif field == 'remove_keyboard':
+        elif (
+            name.startswith('PassportElementError') and field == 'source'
+        ) or field == 'remove_keyboard':
+            continue
+        elif name.startswith('ForceReply') and field == 'force_reply':  # this param is always True
             continue
 
         param = sig.parameters.get(field)
         assert param is not None, f"Attribute {field} not found in {obj.__name__}"
         # TODO: Check type via docstring
-        # TODO: Check if optional or required
-        checked.append(field)
+        assert check_required_param(
+            parameter, field, sig, obj.__name__
+        ), f"{obj.__name__!r} parameter {param.name!r} requirement mismatch"
+        checked.add(field)
 
     ignored = IGNORED_PARAMETERS.copy()
     if name == 'InputFile':
         return
-    elif name == 'InlineQueryResult':
-        ignored |= {'id', 'type'}
-    elif name == 'User':
-        ignored |= {'type'}  # TODO: Deprecation
+    if name == 'InlineQueryResult':
+        ignored |= {'id', 'type'}  # attributes common to all subclasses
+    if name == 'ChatMember':
+        ignored |= {'user', 'status'}  # attributes common to all subclasses
+    if name == 'BotCommandScope':
+        ignored |= {'type'}  # attributes common to all subclasses
     elif name in ('PassportFile', 'EncryptedPassportElement'):
         ignored |= {'credentials'}
     elif name == 'PassportElementError':
@@ -146,6 +167,26 @@ def check_object(h4):
         ignored |= {'filename'}  # Convenience parameter
 
     assert (sig.parameters.keys() ^ checked) - ignored == set()
+
+
+def check_required_param(
+    param_desc: List[str], param_name: str, sig: inspect.Signature, method_or_obj_name: str
+) -> bool:
+    """Checks if the method/class parameter is a required/optional param as per Telegram docs."""
+    if len(param_desc) == 4:  # this means that there is a dedicated 'Required' column present.
+        # Handle cases where we provide convenience intentionally-
+        if param_name in ignored_param_requirements.get(method_or_obj_name, {}):
+            return True
+        is_required = True if param_desc[2] in {'Required', 'Yes'} else False
+        is_ours_required = sig.parameters[param_name].default is inspect.Signature.empty
+        return is_required is is_ours_required
+
+    if len(param_desc) == 3:  # The docs mention the requirement in the description for classes...
+        if param_name in ignored_param_requirements.get(method_or_obj_name, {}):
+            return True
+        is_required = False if param_desc[2].split('.', 1)[0] == 'Optional' else True
+        is_ours_required = sig.parameters[param_name].default is inspect.Signature.empty
+        return is_required is is_ours_required
 
 
 argvalues = []

@@ -57,6 +57,12 @@ class TestInlineQueryResultArticle:
     thumb_height = 10
     thumb_width = 15
 
+    def test_slot_behaviour(self, inline_query_result_article, mro_slots, recwarn):
+        inst = inline_query_result_article
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     def test_expected_values(self, inline_query_result_article):
         assert inline_query_result_article.type == self.type_
         assert inline_query_result_article.id == self.id_

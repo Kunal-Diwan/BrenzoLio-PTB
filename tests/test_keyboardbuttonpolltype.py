@@ -29,6 +29,12 @@ def keyboard_button_poll_type():
 class TestKeyboardButtonPollType:
     type = Poll.QUIZ
 
+    def test_slot_behaviour(self, keyboard_button_poll_type, mro_slots):
+        inst = keyboard_button_poll_type
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     def test_to_dict(self, keyboard_button_poll_type):
         keyboard_button_poll_type_dict = keyboard_button_poll_type.to_dict()
         assert isinstance(keyboard_button_poll_type_dict, dict)

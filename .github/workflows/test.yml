@@ -3,9 +3,11 @@ on:
   pull_request:
     branches:
       - master
+      - v14
   push:
     branches: 
       - master
+      - v14
 
 jobs:
   pytest:
@@ -13,7 +15,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
         os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: False
     steps:
@@ -34,7 +36,7 @@ jobs:
 
       - name: Test with pytest
         # We run 3 different suites here
-        # 1. Test just utils.helpers.py without pytz being installed
+        # 1. Test just utils.datetime.py without pytz being installed
         # 2. Test just test_no_passport.py without passport dependencies being installed
         # 3. Test everything else
         # The first & second one are achieved by mocking the corresponding import
@@ -60,7 +62,7 @@ jobs:
         shell: bash --noprofile --norc {0}
 
       - name: Submit coverage
-        uses: codecov/codecov-action@v1.0.13
+        uses: codecov/codecov-action@v1
         with:
           env_vars: OS,PYTHON
           name: ${{ matrix.os }}-${{ matrix.python-version }}
@@ -79,7 +81,7 @@ jobs:
         run:
           git submodule update --init --recursive
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -108,7 +110,7 @@ jobs:
         run:
           git submodule update --init --recursive
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies

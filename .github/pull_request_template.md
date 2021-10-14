@@ -6,6 +6,7 @@ Hey! You're PRing? Cool! Please have a look at the below checklist. It's here to
 
 - [ ] Added `.. versionadded:: version`, `.. versionchanged:: version` or `.. deprecated:: version` to the docstrings for user facing changes (for methods/class descriptions, arguments and attributes)
 - [ ] Created new or adapted existing unit tests
+- [ ] Documented code changes according to the [CSI standard](https://standards.mousepawmedia.com/en/stable/csi.html)
 - [ ] Added myself alphabetically to `AUTHORS.rst` (optional)
 
 
@@ -27,4 +28,5 @@ Hey! You're PRing? Cool! Please have a look at the below checklist. It's here to
     - [ ] Added new handlers for new update types
     - [ ] Added new filters for new message (sub)types
     - [ ] Added or updated documentation for the changed class(es) and/or method(s)
-    - [ ] Updated the Bot API version number in all places in `README.rst` and `README_RAW.rst`, including the badge
+    - [ ] Updated the Bot API version number in all places: `README.rst` and `README_RAW.rst` (including the badge), as well as `telegram.constants.BOT_API_VERSION`
+    - [ ] Added logic for arbitrary callback data in `tg.ext.Bot` for new methods that either accept a `reply_markup` in some form or have a return type that is/contains `telegram.Message`

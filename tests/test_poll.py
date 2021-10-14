@@ -15,14 +15,13 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from datetime import datetime
 
 
 from telegram import Poll, PollOption, PollAnswer, User, MessageEntity
-from telegram.utils.helpers import to_timestamp
+from telegram._utils.datetime import to_timestamp
 
 
 @pytest.fixture(scope="class")
@@ -33,6 +32,11 @@ def poll_option():
 class TestPollOption:
     text = "test option"
     voter_count = 3
+
+    def test_slot_behaviour(self, poll_option, mro_slots):
+        for attr in poll_option.__slots__:
+            assert getattr(poll_option, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(poll_option)) == len(set(mro_slots(poll_option))), "duplicate slot"
 
     def test_de_json(self):
         json_dict = {'text': self.text, 'voter_count': self.voter_count}

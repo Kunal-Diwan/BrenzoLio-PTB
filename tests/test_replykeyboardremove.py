@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 from flaky import flaky
 
@@ -32,8 +31,13 @@ class TestReplyKeyboardRemove:
     remove_keyboard = True
     selective = True
 
+    def test_slot_behaviour(self, reply_keyboard_remove, mro_slots):
+        inst = reply_keyboard_remove
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
+
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_message_with_reply_keyboard_remove(
         self, bot, chat_id, reply_keyboard_remove

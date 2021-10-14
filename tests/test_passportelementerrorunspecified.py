@@ -16,7 +16,6 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-
 import pytest
 
 from telegram import PassportElementErrorUnspecified, PassportElementErrorDataField
@@ -36,6 +35,12 @@ class TestPassportElementErrorUnspecified:
     type_ = 'test_type'
     element_hash = 'element_hash'
     message = 'Error message'
+
+    def test_slot_behaviour(self, passport_element_error_unspecified, mro_slots):
+        inst = passport_element_error_unspecified
+        for attr in inst.__slots__:
+            assert getattr(inst, attr, 'err') != 'err', f"got extra slot '{attr}'"
+        assert len(mro_slots(inst)) == len(set(mro_slots(inst))), "duplicate slot"
 
     def test_expected_values(self, passport_element_error_unspecified):
         assert passport_element_error_unspecified.source == self.source
