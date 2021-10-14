@@ -87,7 +87,7 @@ class TestPreCheckoutQuery:
         assert check_shortcut_signature(
             PreCheckoutQuery.answer, Bot.answer_pre_checkout_query, ['pre_checkout_query_id'], []
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             pre_checkout_query.answer,
             pre_checkout_query.bot,
             'answer_pre_checkout_query',

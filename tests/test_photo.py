@@ -372,7 +372,7 @@ class TestPhoto:
         Regression test for https://github.com/python-telegram-bot/python-telegram-bot/issues/1202
         """
         with data_file('测试.png').open('rb') as f:
-            message = bot.send_photo(photo=f, chat_id=chat_id)
+            message = await bot.send_photo(photo=f, chat_id=chat_id)
 
         photo = message.photo[-1]
 
@@ -400,7 +400,7 @@ class TestPhoto:
 
         # send raw photo
         raw_bytes = BytesIO(filepath.read_bytes())
-        message = bot.send_photo(chat_id, photo=raw_bytes)
+        message = await bot.send_photo(chat_id, photo=raw_bytes)
         photo = message.photo[-1]
         assert isinstance(photo.file_id, str)
         assert isinstance(photo.file_unique_id, str)
@@ -494,7 +494,7 @@ class TestPhoto:
             return kwargs['file_id'] == photo.file_id
 
         assert check_shortcut_signature(PhotoSize.get_file, Bot.get_file, ['file_id'], [])
-        assert check_shortcut_call(photo.get_file, photo.bot, 'get_file')
+        assert await check_shortcut_call(photo.get_file, photo.bot, 'get_file')
         assert await check_defaults_handling(photo.get_file, photo.bot)
 
         monkeypatch.setattr(photo.bot, 'get_file', make_assertion)

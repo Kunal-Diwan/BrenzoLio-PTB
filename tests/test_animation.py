@@ -327,7 +327,7 @@ class TestAnimation:
             return kwargs['file_id'] == animation.file_id
 
         assert check_shortcut_signature(Animation.get_file, Bot.get_file, ['file_id'], [])
-        assert check_shortcut_call(animation.get_file, animation.bot, 'get_file')
+        assert await check_shortcut_call(animation.get_file, animation.bot, 'get_file')
         assert await check_defaults_handling(animation.get_file, animation.bot)
 
         monkeypatch.setattr(animation.bot, 'get_file', make_assertion)

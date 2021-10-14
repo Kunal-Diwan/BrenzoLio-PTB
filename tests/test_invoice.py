@@ -80,8 +80,9 @@ class TestInvoice:
         assert invoice_dict['total_amount'] == invoice.total_amount
 
     @flaky(3, 1)
-    def test_send_required_args_only(self, bot, chat_id, provider_token):
-        message = bot.send_invoice(
+    @pytest.mark.asyncio
+    async def test_send_required_args_only(self, bot, chat_id, provider_token):
+        message = await bot.send_invoice(
             chat_id=chat_id,
             title=self.title,
             description=self.description,
@@ -250,7 +251,7 @@ class TestInvoice:
             assert message.reply_to_message is None
         else:
             with pytest.raises(BadRequest, match='message not found'):
-                default_bot.send_invoice(
+                await default_bot.send_invoice(
                     chat_id,
                     self.title,
                     self.description,

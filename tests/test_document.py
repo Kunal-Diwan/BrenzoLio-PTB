@@ -314,7 +314,7 @@ class TestDocument:
             return kwargs['file_id'] == document.file_id
 
         assert check_shortcut_signature(Document.get_file, Bot.get_file, ['file_id'], [])
-        assert check_shortcut_call(document.get_file, document.bot, 'get_file')
+        assert await check_shortcut_call(document.get_file, document.bot, 'get_file')
         assert await check_defaults_handling(document.get_file, document.bot)
 
         monkeypatch.setattr(document.bot, 'get_file', make_assertion)

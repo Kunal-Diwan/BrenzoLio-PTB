@@ -121,7 +121,7 @@ class TestCallbackQuery:
         assert check_shortcut_signature(
             CallbackQuery.answer, Bot.answer_callback_query, ['callback_query_id'], []
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.answer, callback_query.bot, 'answer_callback_query'
         )
         assert await check_defaults_handling(callback_query.answer, callback_query.bot)
@@ -143,7 +143,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.edit_message_text,
             callback_query.bot,
             'edit_message_text',
@@ -169,7 +169,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.edit_message_caption,
             callback_query.bot,
             'edit_message_caption',
@@ -197,7 +197,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.edit_message_reply_markup,
             callback_query.bot,
             'edit_message_reply_markup',
@@ -225,7 +225,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.edit_message_media,
             callback_query.bot,
             'edit_message_media',
@@ -252,7 +252,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.edit_message_live_location,
             callback_query.bot,
             'edit_message_live_location',
@@ -279,7 +279,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.stop_message_live_location,
             callback_query.bot,
             'stop_message_live_location',
@@ -307,7 +307,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.set_game_score,
             callback_query.bot,
             'set_game_score',
@@ -333,7 +333,7 @@ class TestCallbackQuery:
             ['inline_message_id', 'message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.get_game_high_scores,
             callback_query.bot,
             'get_game_high_scores',
@@ -364,7 +364,7 @@ class TestCallbackQuery:
             ['message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.delete_message, callback_query.bot, 'delete_message'
         )
         assert await check_defaults_handling(callback_query.delete_message, callback_query.bot)
@@ -386,7 +386,7 @@ class TestCallbackQuery:
             ['message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.pin_message, callback_query.bot, 'pin_chat_message'
         )
         assert await check_defaults_handling(callback_query.pin_message, callback_query.bot)
@@ -408,7 +408,7 @@ class TestCallbackQuery:
             ['message_id', 'chat_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             callback_query.unpin_message,
             callback_query.bot,
             'unpin_chat_message',
@@ -436,7 +436,9 @@ class TestCallbackQuery:
             ['message_id', 'from_chat_id'],
             [],
         )
-        assert check_shortcut_call(callback_query.copy_message, callback_query.bot, 'copy_message')
+        assert await check_shortcut_call(
+            callback_query.copy_message, callback_query.bot, 'copy_message'
+        )
         assert await check_defaults_handling(callback_query.copy_message, callback_query.bot)
 
         monkeypatch.setattr(callback_query.bot, 'copy_message', make_assertion)

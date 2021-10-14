@@ -47,6 +47,8 @@ class PtbHttpx(PtbRequestBase):
 
     """
 
+    __slots__ = ('_log', '_client')
+
     def __init__(
         self,
         con_pool_size: int = 1,

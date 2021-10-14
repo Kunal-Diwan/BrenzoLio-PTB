@@ -651,7 +651,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_text, Bot.send_message, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_text, message.bot, 'send_message')
+        assert await check_shortcut_call(message.reply_text, message.bot, 'send_message')
         assert await check_defaults_handling(message.reply_text, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_message', make_assertion)
@@ -681,7 +681,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_markdown, Bot.send_message, ['chat_id', 'parse_mode'], ['quote']
         )
-        assert check_shortcut_call(message.reply_text, message.bot, 'send_message')
+        assert await check_shortcut_call(message.reply_text, message.bot, 'send_message')
         assert await check_defaults_handling(message.reply_text, message.bot)
 
         text_markdown = self.test_message.text_markdown
@@ -717,7 +717,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_markdown_v2, Bot.send_message, ['chat_id', 'parse_mode'], ['quote']
         )
-        assert check_shortcut_call(message.reply_text, message.bot, 'send_message')
+        assert await check_shortcut_call(message.reply_text, message.bot, 'send_message')
         assert await check_defaults_handling(message.reply_text, message.bot)
 
         text_markdown = self.test_message_v2.text_markdown_v2
@@ -757,7 +757,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_html, Bot.send_message, ['chat_id', 'parse_mode'], ['quote']
         )
-        assert check_shortcut_call(message.reply_text, message.bot, 'send_message')
+        assert await check_shortcut_call(message.reply_text, message.bot, 'send_message')
         assert await check_defaults_handling(message.reply_text, message.bot)
 
         text_html = self.test_message_v2.text_html
@@ -784,7 +784,9 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_media_group, Bot.send_media_group, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_media_group, message.bot, 'send_media_group')
+        assert await check_shortcut_call(
+            message.reply_media_group, message.bot, 'send_media_group'
+        )
         assert await check_defaults_handling(message.reply_media_group, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_media_group', make_assertion)
@@ -805,7 +807,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_photo, Bot.send_photo, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_photo, message.bot, 'send_photo')
+        assert await check_shortcut_call(message.reply_photo, message.bot, 'send_photo')
         assert await check_defaults_handling(message.reply_photo, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_photo', make_assertion)
@@ -826,7 +828,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_audio, Bot.send_audio, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_audio, message.bot, 'send_audio')
+        assert await check_shortcut_call(message.reply_audio, message.bot, 'send_audio')
         assert await check_defaults_handling(message.reply_audio, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_audio', make_assertion)
@@ -847,7 +849,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_document, Bot.send_document, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_document, message.bot, 'send_document')
+        assert await check_shortcut_call(message.reply_document, message.bot, 'send_document')
         assert await check_defaults_handling(message.reply_document, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_document', make_assertion)
@@ -868,7 +870,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_animation, Bot.send_animation, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_animation, message.bot, 'send_animation')
+        assert await check_shortcut_call(message.reply_animation, message.bot, 'send_animation')
         assert await check_defaults_handling(message.reply_animation, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_animation', make_assertion)
@@ -889,7 +891,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_sticker, Bot.send_sticker, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_sticker, message.bot, 'send_sticker')
+        assert await check_shortcut_call(message.reply_sticker, message.bot, 'send_sticker')
         assert await check_defaults_handling(message.reply_sticker, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_sticker', make_assertion)
@@ -910,7 +912,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_video, Bot.send_video, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_video, message.bot, 'send_video')
+        assert await check_shortcut_call(message.reply_video, message.bot, 'send_video')
         assert await check_defaults_handling(message.reply_video, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_video', make_assertion)
@@ -931,7 +933,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_video_note, Bot.send_video_note, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_video_note, message.bot, 'send_video_note')
+        assert await check_shortcut_call(message.reply_video_note, message.bot, 'send_video_note')
         assert await check_defaults_handling(message.reply_video_note, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_video_note', make_assertion)
@@ -952,7 +954,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_voice, Bot.send_voice, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_voice, message.bot, 'send_voice')
+        assert await check_shortcut_call(message.reply_voice, message.bot, 'send_voice')
         assert await check_defaults_handling(message.reply_voice, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_voice', make_assertion)
@@ -973,7 +975,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_location, Bot.send_location, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_location, message.bot, 'send_location')
+        assert await check_shortcut_call(message.reply_location, message.bot, 'send_location')
         assert await check_defaults_handling(message.reply_location, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_location', make_assertion)
@@ -994,7 +996,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_venue, Bot.send_venue, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_venue, message.bot, 'send_venue')
+        assert await check_shortcut_call(message.reply_venue, message.bot, 'send_venue')
         assert await check_defaults_handling(message.reply_venue, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_venue', make_assertion)
@@ -1015,7 +1017,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_contact, Bot.send_contact, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_contact, message.bot, 'send_contact')
+        assert await check_shortcut_call(message.reply_contact, message.bot, 'send_contact')
         assert await check_defaults_handling(message.reply_contact, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_contact', make_assertion)
@@ -1035,7 +1037,7 @@ class TestMessage:
             return id_ and question and options and reply
 
         assert check_shortcut_signature(Message.reply_poll, Bot.send_poll, ['chat_id'], ['quote'])
-        assert check_shortcut_call(message.reply_poll, message.bot, 'send_poll')
+        assert await check_shortcut_call(message.reply_poll, message.bot, 'send_poll')
         assert await check_defaults_handling(message.reply_poll, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_poll', make_assertion)
@@ -1054,7 +1056,7 @@ class TestMessage:
             return id_ and contact and reply
 
         assert check_shortcut_signature(Message.reply_dice, Bot.send_dice, ['chat_id'], ['quote'])
-        assert check_shortcut_call(message.reply_dice, message.bot, 'send_dice')
+        assert await check_shortcut_call(message.reply_dice, message.bot, 'send_dice')
         assert await check_defaults_handling(message.reply_dice, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_dice', make_assertion)
@@ -1071,7 +1073,9 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_chat_action, Bot.send_chat_action, ['chat_id'], []
         )
-        assert check_shortcut_call(message.reply_chat_action, message.bot, 'send_chat_action')
+        assert await check_shortcut_call(
+            message.reply_chat_action, message.bot, 'send_chat_action'
+        )
         assert await check_defaults_handling(message.reply_chat_action, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_chat_action', make_assertion)
@@ -1085,7 +1089,7 @@ class TestMessage:
             )
 
         assert check_shortcut_signature(Message.reply_game, Bot.send_game, ['chat_id'], ['quote'])
-        assert check_shortcut_call(message.reply_game, message.bot, 'send_game')
+        assert await check_shortcut_call(message.reply_game, message.bot, 'send_game')
         assert await check_defaults_handling(message.reply_game, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_game', make_assertion)
@@ -1116,7 +1120,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_invoice, Bot.send_invoice, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.reply_invoice, message.bot, 'send_invoice')
+        assert await check_shortcut_call(message.reply_invoice, message.bot, 'send_invoice')
         assert await check_defaults_handling(message.reply_invoice, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_invoice', make_assertion)
@@ -1153,7 +1157,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.forward, Bot.forward_message, ['from_chat_id', 'message_id'], []
         )
-        assert check_shortcut_call(message.forward, message.bot, 'forward_message')
+        assert await check_shortcut_call(message.forward, message.bot, 'forward_message')
         assert await check_defaults_handling(message.forward, message.bot)
 
         monkeypatch.setattr(message.bot, 'forward_message', make_assertion)
@@ -1179,7 +1183,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.copy, Bot.copy_message, ['from_chat_id', 'message_id'], []
         )
-        assert check_shortcut_call(message.copy, message.bot, 'copy_message')
+        assert await check_shortcut_call(message.copy, message.bot, 'copy_message')
         assert await check_defaults_handling(message.copy, message.bot)
 
         monkeypatch.setattr(message.bot, 'copy_message', make_assertion)
@@ -1212,7 +1216,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.reply_copy, Bot.copy_message, ['chat_id'], ['quote']
         )
-        assert check_shortcut_call(message.copy, message.bot, 'copy_message')
+        assert await check_shortcut_call(message.copy, message.bot, 'copy_message')
         assert await check_defaults_handling(message.copy, message.bot)
 
         monkeypatch.setattr(message.bot, 'copy_message', make_assertion)
@@ -1245,7 +1249,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.edit_text,
             message.bot,
             'edit_message_text',
@@ -1271,7 +1275,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.edit_caption,
             message.bot,
             'edit_message_caption',
@@ -1297,7 +1301,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.edit_media,
             message.bot,
             'edit_message_media',
@@ -1323,7 +1327,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.edit_reply_markup,
             message.bot,
             'edit_message_reply_markup',
@@ -1350,7 +1354,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.edit_live_location,
             message.bot,
             'edit_message_live_location',
@@ -1375,7 +1379,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.stop_live_location,
             message.bot,
             'stop_message_live_location',
@@ -1402,7 +1406,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.set_game_score,
             message.bot,
             'set_game_score',
@@ -1428,7 +1432,7 @@ class TestMessage:
             ['chat_id', 'message_id', 'inline_message_id'],
             [],
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.get_game_high_scores,
             message.bot,
             'get_game_high_scores',
@@ -1450,7 +1454,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.delete, Bot.delete_message, ['chat_id', 'message_id'], []
         )
-        assert check_shortcut_call(message.delete, message.bot, 'delete_message')
+        assert await check_shortcut_call(message.delete, message.bot, 'delete_message')
         assert await check_defaults_handling(message.delete, message.bot)
 
         monkeypatch.setattr(message.bot, 'delete_message', make_assertion)
@@ -1466,7 +1470,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.stop_poll, Bot.stop_poll, ['chat_id', 'message_id'], []
         )
-        assert check_shortcut_call(message.stop_poll, message.bot, 'stop_poll')
+        assert await check_shortcut_call(message.stop_poll, message.bot, 'stop_poll')
         assert await check_defaults_handling(message.stop_poll, message.bot)
 
         monkeypatch.setattr(message.bot, 'stop_poll', make_assertion)
@@ -1482,7 +1486,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.pin, Bot.pin_chat_message, ['chat_id', 'message_id'], []
         )
-        assert check_shortcut_call(message.pin, message.bot, 'pin_chat_message')
+        assert await check_shortcut_call(message.pin, message.bot, 'pin_chat_message')
         assert await check_defaults_handling(message.pin, message.bot)
 
         monkeypatch.setattr(message.bot, 'pin_chat_message', make_assertion)
@@ -1498,7 +1502,7 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.unpin, Bot.unpin_chat_message, ['chat_id', 'message_id'], []
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             message.unpin,
             message.bot,
             'unpin_chat_message',
@@ -1510,7 +1514,7 @@ class TestMessage:
         assert message.unpin()
 
     def test_default_quote(self, message):
-        message.bot.defaults = Defaults()
+        message.bot._defaults = Defaults()
 
         try:
             message.bot.defaults._quote = False

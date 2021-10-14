@@ -210,25 +210,26 @@ class TestSticker:
 
     @pytest.mark.asyncio
     async def test_send_with_sticker(self, monkeypatch, bot, chat_id, sticker):
-        def test(url, data, **kwargs):
+        async def test(url, data, **kwargs):
             return data['sticker'] == sticker.file_id
 
         monkeypatch.setattr(bot.request, 'post', test)
         message = await bot.send_sticker(sticker=sticker, chat_id=chat_id)
         assert message
 
-    def test_send_sticker_local_files(self, monkeypatch, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_send_sticker_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
         file = data_file('telegram.jpg')
         expected = file.as_uri()
 
-        def make_assertion(_, data, *args, **kwargs):
+        async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
             test_flag = data.get('sticker') == expected
 
         monkeypatch.setattr(bot, '_post', make_assertion)
-        bot.send_sticker(chat_id, file)
+        await bot.send_sticker(chat_id, file)
         assert test_flag
         monkeypatch.delattr(bot, '_post')
 
@@ -247,7 +248,7 @@ class TestSticker:
         self, default_bot, chat_id, sticker, custom
     ):
         reply_to_message = await default_bot.send_message(chat_id, 'test')
-        reply_to_message.delete()
+        await reply_to_message.delete()
         if custom is not None:
             message = await default_bot.send_sticker(
                 chat_id,
@@ -280,18 +281,21 @@ class TestSticker:
         assert sticker_dict['thumb'] == sticker.thumb.to_dict()
 
     @flaky(3, 1)
-    def test_error_send_empty_file(self, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_error_send_empty_file(self, bot, chat_id):
         with pytest.raises(TelegramError):
-            bot.send_sticker(chat_id, open(os.devnull, 'rb'))
+            await bot.send_sticker(chat_id, open(os.devnull, 'rb'))
 
     @flaky(3, 1)
-    def test_error_send_empty_file_id(self, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_error_send_empty_file_id(self, bot, chat_id):
         with pytest.raises(TelegramError):
-            bot.send_sticker(chat_id, '')
+            await bot.send_sticker(chat_id, '')
 
-    def test_error_without_required_args(self, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_error_without_required_args(self, bot, chat_id):
         with pytest.raises(TypeError):
-            bot.send_sticker(chat_id)
+            await bot.send_sticker(chat_id)
 
     def test_equality(self, sticker):
         a = Sticker(
@@ -334,6 +338,7 @@ async def sticker_set(bot):
 
 @pytest.fixture(scope='function')
 async def animated_sticker_set(bot):
+    print(bot.username)
     ss = await bot.get_sticker_set(f'animated_test_by_{bot.username}')
     if len(ss.stickers) > 100:
         try:
@@ -383,7 +388,7 @@ class TestStickerSet:
     @pytest.mark.asyncio
     async def test_bot_methods_1_png(self, bot, chat_id, sticker_file):
         with data_file('telegram_sticker.png').open('rb') as f:
-            file = bot.upload_sticker_file(95205500, f)
+            file = await bot.upload_sticker_file(95205500, f)
         assert file
         assert await bot.add_sticker_to_set(
             chat_id, f'test_by_{bot.username}', png_sticker=file.file_id, emojis='😄'
@@ -482,50 +487,53 @@ class TestStickerSet:
         assert test_flag
         monkeypatch.delattr(bot, '_post')
 
-    def test_create_new_sticker_set_local_files(self, monkeypatch, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_create_new_sticker_set_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
         file = data_file('telegram.jpg')
         expected = file.as_uri()
 
-        def make_assertion(_, data, *args, **kwargs):
+        async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
             test_flag = data.get('png_sticker') == expected and data.get('tgs_sticker') == expected
 
         monkeypatch.setattr(bot, '_post', make_assertion)
-        bot.create_new_sticker_set(
+        await bot.create_new_sticker_set(
             chat_id, 'name', 'title', 'emoji', png_sticker=file, tgs_sticker=file
         )
         assert test_flag
         monkeypatch.delattr(bot, '_post')
 
-    def test_add_sticker_to_set_local_files(self, monkeypatch, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_add_sticker_to_set_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
         file = data_file('telegram.jpg')
         expected = file.as_uri()
 
-        def make_assertion(_, data, *args, **kwargs):
+        async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
             test_flag = data.get('png_sticker') == expected and data.get('tgs_sticker') == expected
 
         monkeypatch.setattr(bot, '_post', make_assertion)
-        bot.add_sticker_to_set(chat_id, 'name', 'emoji', png_sticker=file, tgs_sticker=file)
+        await bot.add_sticker_to_set(chat_id, 'name', 'emoji', png_sticker=file, tgs_sticker=file)
         assert test_flag
         monkeypatch.delattr(bot, '_post')
 
-    def test_set_sticker_set_thumb_local_files(self, monkeypatch, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_set_sticker_set_thumb_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
         file = data_file('telegram.jpg')
         expected = file.as_uri()
 
-        def make_assertion(_, data, *args, **kwargs):
+        async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
             test_flag = data.get('thumb') == expected
 
         monkeypatch.setattr(bot, '_post', make_assertion)
-        bot.set_sticker_set_thumb('name', chat_id, thumb=file)
+        await bot.set_sticker_set_thumb('name', chat_id, thumb=file)
         assert test_flag
         monkeypatch.delattr(bot, '_post')
 
@@ -535,11 +543,11 @@ class TestStickerSet:
             return kwargs['file_id'] == sticker.file_id
 
         assert check_shortcut_signature(Sticker.get_file, Bot.get_file, ['file_id'], [])
-        assert check_shortcut_call(sticker.get_file, sticker.bot, 'get_file')
+        assert await check_shortcut_call(sticker.get_file, sticker.bot, 'get_file')
         assert await check_defaults_handling(sticker.get_file, sticker.bot)
 
         monkeypatch.setattr(sticker.bot, 'get_file', make_assertion)
-        assert sticker.get_file()
+        assert await sticker.get_file()
 
     def test_equality(self):
         a = StickerSet(self.name, self.title, self.is_animated, self.contains_masks, self.stickers)

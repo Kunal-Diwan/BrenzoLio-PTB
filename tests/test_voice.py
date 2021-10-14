@@ -247,7 +247,7 @@ class TestVoice:
             assert message.reply_to_message is None
         else:
             with pytest.raises(BadRequest, match='message not found'):
-                default_bot.send_voice(
+                await default_bot.send_voice(
                     chat_id, voice, reply_to_message_id=reply_to_message.message_id
                 )
 
@@ -301,7 +301,7 @@ class TestVoice:
             return kwargs['file_id'] == voice.file_id
 
         assert check_shortcut_signature(Voice.get_file, Bot.get_file, ['file_id'], [])
-        assert check_shortcut_call(voice.get_file, voice.bot, 'get_file')
+        assert await check_shortcut_call(voice.get_file, voice.bot, 'get_file')
         assert await check_defaults_handling(voice.get_file, voice.bot)
 
         monkeypatch.setattr(voice.bot, 'get_file', make_assertion)

@@ -822,7 +822,7 @@ class TestBot:
     async def test_send_chat_action(self, bot, chat_id, chat_action):
         assert await bot.send_chat_action(chat_id, chat_action)
         with pytest.raises(BadRequest, match='Wrong parameter action'):
-            bot.send_chat_action(chat_id, 'unknown action')
+            await bot.send_chat_action(chat_id, 'unknown action')
 
     # TODO: Needs improvement. We need incoming inline query to test answer.
     @pytest.mark.asyncio
@@ -1386,8 +1386,9 @@ class TestBot:
         if updates:
             assert isinstance(updates[0], Update)
 
-    def test_get_updates_invalid_callback_data(self, bot, monkeypatch):
-        def post(*args, **kwargs):
+    @pytest.mark.asyncio
+    async def test_get_updates_invalid_callback_data(self, bot, monkeypatch):
+        async def post(*args, **kwargs):
             return [
                 Update(
                     17,
@@ -1410,8 +1411,8 @@ class TestBot:
         bot.arbitrary_callback_data = True
         try:
             monkeypatch.setattr(bot.request, 'post', post)
-            bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
-            updates = bot.get_updates(timeout=1)
+            await bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
+            updates = await bot.get_updates(timeout=1)
 
             assert isinstance(updates, list)
             assert len(updates) == 1
@@ -1487,8 +1488,8 @@ class TestBot:
 
     @flaky(3, 1)
     @pytest.mark.asyncio
-    async def test_get_chat_members_count(self, bot, channel_id):
-        count = await bot.get_chat_members_count(channel_id)
+    async def test_get_chat_member_count(self, bot, channel_id):
+        count = await bot.get_chat_member_count(channel_id)
         assert isinstance(count, int)
         assert count > 3
 
@@ -1709,7 +1710,7 @@ class TestBot:
             await bot.answer_shipping_query(1, True)
 
         with pytest.raises(AssertionError):
-            bot.answer_shipping_query(1, True, shipping_options=[])
+            await bot.answer_shipping_query(1, True, shipping_options=[])
 
     # TODO: Needs improvement. Need incoming pre checkout queries to test
     @pytest.mark.asyncio
@@ -1838,7 +1839,8 @@ class TestBot:
 
     @flaky(3, 1)
     @pytest.mark.parametrize('datetime', argvalues=[True, False], ids=['datetime', 'integer'])
-    def test_advanced_chat_invite_links(self, bot, channel_id, datetime):
+    @pytest.mark.asyncio
+    async def test_advanced_chat_invite_links(self, bot, channel_id, datetime):
         # we are testing this all in one function in order to save api calls
         timestamp = dtm.datetime.utcnow()
         add_seconds = dtm.timedelta(0, 70)
@@ -1846,7 +1848,7 @@ class TestBot:
         expire_time = time_in_future if datetime else to_timestamp(time_in_future)
         aware_time_in_future = pytz.UTC.localize(time_in_future)
 
-        invite_link = bot.create_chat_invite_link(
+        invite_link = await bot.create_chat_invite_link(
             channel_id, expire_date=expire_time, member_limit=10
         )
         assert invite_link.invite_link != ''
@@ -1859,25 +1861,28 @@ class TestBot:
         expire_time = time_in_future if datetime else to_timestamp(time_in_future)
         aware_time_in_future = pytz.UTC.localize(time_in_future)
 
-        edited_invite_link = bot.edit_chat_invite_link(
+        edited_invite_link = await bot.edit_chat_invite_link(
             channel_id, invite_link.invite_link, expire_date=expire_time, member_limit=20
         )
         assert edited_invite_link.invite_link == invite_link.invite_link
         assert pytest.approx(edited_invite_link.expire_date == aware_time_in_future)
         assert edited_invite_link.member_limit == 20
 
-        revoked_invite_link = bot.revoke_chat_invite_link(channel_id, invite_link.invite_link)
+        revoked_invite_link = await bot.revoke_chat_invite_link(
+            channel_id, invite_link.invite_link
+        )
         assert revoked_invite_link.invite_link == invite_link.invite_link
         assert revoked_invite_link.is_revoked is True
 
     @flaky(3, 1)
-    def test_advanced_chat_invite_links_default_tzinfo(self, tz_bot, channel_id):
+    @pytest.mark.asyncio
+    async def test_advanced_chat_invite_links_default_tzinfo(self, tz_bot, channel_id):
         # we are testing this all in one function in order to save api calls
         add_seconds = dtm.timedelta(0, 70)
         aware_expire_date = dtm.datetime.now(tz=tz_bot.defaults.tzinfo) + add_seconds
         time_in_future = aware_expire_date.replace(tzinfo=None)
 
-        invite_link = tz_bot.create_chat_invite_link(
+        invite_link = await tz_bot.create_chat_invite_link(
             channel_id, expire_date=time_in_future, member_limit=10
         )
         assert invite_link.invite_link != ''
@@ -1889,14 +1894,16 @@ class TestBot:
         aware_expire_date += add_seconds
         time_in_future = aware_expire_date.replace(tzinfo=None)
 
-        edited_invite_link = tz_bot.edit_chat_invite_link(
+        edited_invite_link = await tz_bot.edit_chat_invite_link(
             channel_id, invite_link.invite_link, expire_date=time_in_future, member_limit=20
         )
         assert edited_invite_link.invite_link == invite_link.invite_link
         assert pytest.approx(edited_invite_link.expire_date == aware_expire_date)
         assert edited_invite_link.member_limit == 20
 
-        revoked_invite_link = tz_bot.revoke_chat_invite_link(channel_id, invite_link.invite_link)
+        revoked_invite_link = await tz_bot.revoke_chat_invite_link(
+            channel_id, invite_link.invite_link
+        )
         assert revoked_invite_link.invite_link == invite_link.invite_link
         assert revoked_invite_link.is_revoked is True
 
@@ -2115,11 +2122,11 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_set_and_get_my_commands(self, bot):
         commands = [BotCommand('cmd1', 'descr1'), ['cmd2', 'descr2']]
-        bot.set_my_commands([])
-        assert bot.get_my_commands() == []
-        assert bot.set_my_commands(commands)
+        await bot.set_my_commands([])
+        assert await bot.get_my_commands() == []
+        assert await bot.set_my_commands(commands)
 
-        for i, bc in enumerate(bot.get_my_commands()):
+        for i, bc in enumerate(await bot.get_my_commands()):
             assert bc.command == f'cmd{i+1}'
             assert bc.description == f'descr{i+1}'
 
@@ -2132,32 +2139,32 @@ class TestBot:
         private_scope = BotCommandScopeChat(chat_id)
 
         # Set supergroup command list with lang code and check if the same can be returned from api
-        bot.set_my_commands(group_cmds, scope=group_scope, language_code='en')
-        gotten_group_cmds = bot.get_my_commands(scope=group_scope, language_code='en')
+        await bot.set_my_commands(group_cmds, scope=group_scope, language_code='en')
+        gotten_group_cmds = await bot.get_my_commands(scope=group_scope, language_code='en')
 
         assert len(gotten_group_cmds) == len(group_cmds)
         assert gotten_group_cmds[0].command == group_cmds[0].command
 
         # Set private command list and check if same can be returned from the api
-        bot.set_my_commands(private_cmds, scope=private_scope)
-        gotten_private_cmd = bot.get_my_commands(scope=private_scope)
+        await bot.set_my_commands(private_cmds, scope=private_scope)
+        gotten_private_cmd = await bot.get_my_commands(scope=private_scope)
 
         assert len(gotten_private_cmd) == len(private_cmds)
         assert gotten_private_cmd[0].command == private_cmds[0].command
 
         # Delete command list from that supergroup and private chat-
-        bot.delete_my_commands(private_scope)
-        bot.delete_my_commands(group_scope, 'en')
+        await bot.delete_my_commands(private_scope)
+        await bot.delete_my_commands(group_scope, 'en')
 
         # Check if its been deleted-
-        deleted_priv_cmds = bot.get_my_commands(scope=private_scope)
-        deleted_grp_cmds = bot.get_my_commands(scope=group_scope, language_code='en')
+        deleted_priv_cmds = await bot.get_my_commands(scope=private_scope)
+        deleted_grp_cmds = await bot.get_my_commands(scope=group_scope, language_code='en')
 
         assert len(deleted_grp_cmds) == 0 == len(group_cmds) - 1
         assert len(deleted_priv_cmds) == 0 == len(private_cmds) - 1
 
-        bot.delete_my_commands()  # Delete commands from default scope
-        assert len(bot.get_my_commands()) == 0
+        await bot.delete_my_commands()  # Delete commands from default scope
+        assert len(await bot.get_my_commands()) == 0
 
     @pytest.mark.asyncio
     async def test_log_out(self, monkeypatch, bot):
@@ -2289,7 +2296,8 @@ class TestBot:
         else:
             assert len(message.caption_entities) == 0
 
-    def test_replace_callback_data_send_message(self, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_replace_callback_data_send_message(self, bot, chat_id):
         try:
             bot.arbitrary_callback_data = True
             replace_button = InlineKeyboardButton(text='replace', callback_data='replace_test')
@@ -2302,7 +2310,9 @@ class TestBot:
                     no_replace_button,
                 ]
             )
-            message = bot.send_message(chat_id=chat_id, text='test', reply_markup=reply_markup)
+            message = await bot.send_message(
+                chat_id=chat_id, text='test', reply_markup=reply_markup
+            )
             inline_keyboard = message.reply_markup.inline_keyboard
 
             assert inline_keyboard[0][1] == no_replace_button
@@ -2315,8 +2325,9 @@ class TestBot:
             bot.callback_data_cache.clear_callback_data()
             bot.callback_data_cache.clear_callback_queries()
 
-    def test_replace_callback_data_stop_poll_and_repl_to_message(self, bot, chat_id):
-        poll_message = bot.send_poll(chat_id=chat_id, question='test', options=['1', '2'])
+    @pytest.mark.asyncio
+    async def test_replace_callback_data_stop_poll_and_repl_to_message(self, bot, chat_id):
+        poll_message = await bot.send_poll(chat_id=chat_id, question='test', options=['1', '2'])
         try:
             bot.arbitrary_callback_data = True
             replace_button = InlineKeyboardButton(text='replace', callback_data='replace_test')
@@ -2329,8 +2340,8 @@ class TestBot:
                     no_replace_button,
                 ]
             )
-            poll_message.stop_poll(reply_markup=reply_markup)
-            helper_message = poll_message.reply_text('temp', quote=True)
+            await poll_message.stop_poll(reply_markup=reply_markup)
+            helper_message = await poll_message.reply_text('temp', quote=True)
             message = helper_message.reply_to_message
             inline_keyboard = message.reply_markup.inline_keyboard
 
@@ -2344,10 +2355,11 @@ class TestBot:
             bot.callback_data_cache.clear_callback_data()
             bot.callback_data_cache.clear_callback_queries()
 
-    def test_replace_callback_data_copy_message(self, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_replace_callback_data_copy_message(self, bot, chat_id):
         """This also tests that data is inserted into the buttons of message.reply_to_message
         where message is the return value of a bot method"""
-        original_message = bot.send_message(chat_id=chat_id, text='original')
+        original_message = await bot.send_message(chat_id=chat_id, text='original')
         try:
             bot.arbitrary_callback_data = True
             replace_button = InlineKeyboardButton(text='replace', callback_data='replace_test')
@@ -2360,8 +2372,8 @@ class TestBot:
                     no_replace_button,
                 ]
             )
-            message_id = original_message.copy(chat_id=chat_id, reply_markup=reply_markup)
-            helper_message = bot.send_message(
+            message_id = await original_message.copy(chat_id=chat_id, reply_markup=reply_markup)
+            helper_message = await bot.send_message(
                 chat_id=chat_id, reply_to_message_id=message_id.message_id, text='temp'
             )
             message = helper_message.reply_to_message
@@ -2378,9 +2390,10 @@ class TestBot:
             bot.callback_data_cache.clear_callback_queries()
 
     # TODO: Needs improvement. We need incoming inline query to test answer.
-    def test_replace_callback_data_answer_inline_query(self, monkeypatch, bot, chat_id):
+    @pytest.mark.asyncio
+    async def test_replace_callback_data_answer_inline_query(self, monkeypatch, bot, chat_id):
         # For now just test that our internals pass the correct data
-        def make_assertion(
+        async def make_assertion(
             endpoint,
             data=None,
             timeout=None,
@@ -2428,46 +2441,48 @@ class TestBot:
                 ),
             ]
 
-            assert bot.answer_inline_query(chat_id, results=results)
+            assert await bot.answer_inline_query(chat_id, results=results)
 
         finally:
             bot.arbitrary_callback_data = False
             bot.callback_data_cache.clear_callback_data()
             bot.callback_data_cache.clear_callback_queries()
 
-    def test_get_chat_arbitrary_callback_data(self, super_group_id, bot):
+    @pytest.mark.asyncio
+    async def test_get_chat_arbitrary_callback_data(self, super_group_id, bot):
         try:
             bot.arbitrary_callback_data = True
             reply_markup = InlineKeyboardMarkup.from_button(
                 InlineKeyboardButton(text='text', callback_data='callback_data')
             )
 
-            message = bot.send_message(
+            message = await bot.send_message(
                 super_group_id, text='get_chat_arbitrary_callback_data', reply_markup=reply_markup
             )
-            message.pin()
+            await message.pin()
 
             keyboard = list(bot.callback_data_cache._keyboard_data)[0]
             data = list(bot.callback_data_cache._keyboard_data[keyboard].button_data.values())[0]
             assert data == 'callback_data'
 
-            chat = bot.get_chat(super_group_id)
+            chat = await bot.get_chat(super_group_id)
             assert chat.pinned_message == message
             assert chat.pinned_message.reply_markup == reply_markup
         finally:
             bot.arbitrary_callback_data = False
             bot.callback_data_cache.clear_callback_data()
             bot.callback_data_cache.clear_callback_queries()
-            bot.unpin_all_chat_messages(super_group_id)
+            await bot.unpin_all_chat_messages(super_group_id)
 
     # In the following tests we check that get_updates inserts callback data correctly if necessary
     # The same must be done in the webhook updater. This is tested over at test_updater.py, but
     # here we test more extensively.
 
-    def test_arbitrary_callback_data_no_insert(self, monkeypatch, bot):
+    @pytest.mark.asyncio
+    async def test_arbitrary_callback_data_no_insert(self, monkeypatch, bot):
         """Updates that don't need insertion shouldn.t fail obviously"""
 
-        def post(*args, **kwargs):
+        async def post(*args, **kwargs):
             update = Update(
                 17,
                 poll=Poll(
@@ -2486,8 +2501,8 @@ class TestBot:
         try:
             bot.arbitrary_callback_data = True
             monkeypatch.setattr(bot.request, 'post', post)
-            bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
-            updates = bot.get_updates(timeout=1)
+            await bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
+            updates = await bot.get_updates(timeout=1)
 
             assert len(updates) == 1
             assert updates[0].update_id == 17
@@ -2498,7 +2513,8 @@ class TestBot:
     @pytest.mark.parametrize(
         'message_type', ['channel_post', 'edited_channel_post', 'message', 'edited_message']
     )
-    def test_arbitrary_callback_data_pinned_message_reply_to_message(
+    @pytest.mark.asyncio
+    async def test_arbitrary_callback_data_pinned_message_reply_to_message(
         self, super_group_id, bot, monkeypatch, message_type
     ):
         bot.arbitrary_callback_data = True
@@ -2512,7 +2528,7 @@ class TestBot:
         # We do to_dict -> de_json to make sure those aren't the same objects
         message.pinned_message = Message.de_json(message.to_dict(), bot)
 
-        def post(*args, **kwargs):
+        async def post(*args, **kwargs):
             update = Update(
                 17,
                 **{
@@ -2529,8 +2545,8 @@ class TestBot:
 
         try:
             monkeypatch.setattr(bot.request, 'post', post)
-            bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
-            updates = bot.get_updates(timeout=1)
+            await bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
+            updates = await bot.get_updates(timeout=1)
 
             assert isinstance(updates, list)
             assert len(updates) == 1
@@ -2555,12 +2571,13 @@ class TestBot:
             bot.callback_data_cache.clear_callback_data()
             bot.callback_data_cache.clear_callback_queries()
 
-    def test_arbitrary_callback_data_get_chat_no_pinned_message(self, super_group_id, bot):
+    @pytest.mark.asyncio
+    async def test_arbitrary_callback_data_get_chat_no_pinned_message(self, super_group_id, bot):
         bot.arbitrary_callback_data = True
-        bot.unpin_all_chat_messages(super_group_id)
+        await bot.unpin_all_chat_messages(super_group_id)
 
         try:
-            chat = bot.get_chat(super_group_id)
+            chat = await bot.get_chat(super_group_id)
 
             assert isinstance(chat, Chat)
             assert int(chat.id) == int(super_group_id)
@@ -2572,7 +2589,8 @@ class TestBot:
         'message_type', ['channel_post', 'edited_channel_post', 'message', 'edited_message']
     )
     @pytest.mark.parametrize('self_sender', [True, False])
-    def test_arbitrary_callback_data_via_bot(
+    @pytest.mark.asyncio
+    async def test_arbitrary_callback_data_via_bot(
         self, super_group_id, bot, monkeypatch, self_sender, message_type
     ):
         bot.arbitrary_callback_data = True
@@ -2589,13 +2607,13 @@ class TestBot:
             via_bot=bot.bot if self_sender else User(1, 'first', False),
         )
 
-        def post(*args, **kwargs):
+        async def post(*args, **kwargs):
             return [Update(17, **{message_type: message}).to_dict()]
 
         try:
             monkeypatch.setattr(bot.request, 'post', post)
-            bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
-            updates = bot.get_updates(timeout=1)
+            await bot.delete_webhook()  # make sure there is no webhook set if webhook tests failed
+            updates = await bot.get_updates(timeout=1)
 
             assert isinstance(updates, list)
             assert len(updates) == 1
@@ -2627,7 +2645,7 @@ class TestBot:
             if (
                 function_name.startswith("_")
                 or not callable(function)
-                or function_name == "to_dict"
+                or function_name in ["to_dict", "do_init", "do_teardown"]
             ):
                 continue
             camel_case_function = getattr(Bot, to_camel_case(function_name), False)

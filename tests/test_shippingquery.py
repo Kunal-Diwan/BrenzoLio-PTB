@@ -72,7 +72,7 @@ class TestShippingQuery:
         assert check_shortcut_signature(
             ShippingQuery.answer, Bot.answer_shipping_query, ['shipping_query_id'], []
         )
-        assert check_shortcut_call(
+        assert await check_shortcut_call(
             shipping_query.answer, shipping_query.bot, 'answer_shipping_query'
         )
         assert await check_defaults_handling(shipping_query.answer, shipping_query.bot)

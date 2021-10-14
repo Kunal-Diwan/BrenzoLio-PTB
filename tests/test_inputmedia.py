@@ -470,7 +470,7 @@ class TestSendMediaGroup:
         video_file,  # noqa: F811
         monkeypatch,
     ):
-        def make_assertion(url, data, **kwargs):
+        async def make_assertion(url, data, **kwargs):
             result = all(im.media.filename == 'custom_filename' for im in data['media'])
             # We are a bit hacky here b/c Bot.send_media_group expects a list of Message-dicts
             return [Message(0, None, None, text=result).to_dict()]
@@ -486,20 +486,21 @@ class TestSendMediaGroup:
 
         assert (await bot.send_media_group(chat_id, media))[0].text is True
 
-    def test_send_media_group_with_thumbs(
+    @pytest.mark.asyncio
+    async def test_send_media_group_with_thumbs(
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
-        def test(*args, **kwargs):
+        async def test(*args, **kwargs):
             data = kwargs['fields']
             video_check = data[input_video.media.attach] == input_video.media.field_tuple
             thumb_check = data[input_video.thumb.attach] == input_video.thumb.field_tuple
             result = video_check and thumb_check
             raise Exception(f"Test was {'successful' if result else 'failing'}")
 
-        monkeypatch.setattr('telegram.request.Request._request_wrapper', test)
+        monkeypatch.setattr(bot.request, '_request_wrapper', test)
         input_video = InputMediaVideo(video_file, thumb=photo_file)
         with pytest.raises(Exception, match='Test was successful'):
-            bot.send_media_group(chat_id, [input_video, input_video])
+            await bot.send_media_group(chat_id, [input_video, input_video])
 
     @flaky(3, 1)  # noqa: F811
     @pytest.mark.timeout(10)  # noqa: F811
@@ -588,27 +589,29 @@ class TestSendMediaGroup:
         )
         assert isinstance(new_message, Message)
 
-    def test_edit_message_media_with_thumb(
+    @pytest.mark.asyncio
+    async def test_edit_message_media_with_thumb(
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
-        def test(*args, **kwargs):
+        async def test(*args, **kwargs):
             data = kwargs['fields']
             video_check = data[input_video.media.attach] == input_video.media.field_tuple
             thumb_check = data[input_video.thumb.attach] == input_video.thumb.field_tuple
             result = video_check and thumb_check
             raise Exception(f"Test was {'successful' if result else 'failing'}")
 
-        monkeypatch.setattr('telegram.request.Request._request_wrapper', test)
+        monkeypatch.setattr(bot.request, '_request_wrapper', test)
         input_video = InputMediaVideo(video_file, thumb=photo_file)
         with pytest.raises(Exception, match='Test was successful'):
-            bot.edit_message_media(chat_id=chat_id, message_id=123, media=input_video)
+            await bot.edit_message_media(chat_id=chat_id, message_id=123, media=input_video)
 
     @flaky(3, 1)
     @pytest.mark.parametrize(
         'default_bot', [{'parse_mode': ParseMode.HTML}], indirect=True, ids=['HTML-Bot']
     )
     @pytest.mark.parametrize('media_type', ['animation', 'document', 'audio', 'photo', 'video'])
-    def test_edit_message_media_default_parse_mode(
+    @pytest.mark.asyncio
+    async def test_edit_message_media_default_parse_mode(
         self,
         chat_id,
         default_bot,
@@ -647,9 +650,9 @@ class TestSendMediaGroup:
             if med_type == 'video':
                 return InputMediaVideo(video, **kwargs)
 
-        message = default_bot.send_photo(chat_id, photo)
+        message = await default_bot.send_photo(chat_id, photo)
 
-        message = default_bot.edit_message_media(
+        message = await default_bot.edit_message_media(
             build_media(parse_mode=ParseMode.HTML, med_type=media_type),
             message.chat_id,
             message.message_id,

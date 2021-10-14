@@ -108,9 +108,24 @@ def bot_info():
     return get_bot()
 
 
-# Below Dict* classes are used to monkeypatch attributes since parent classes don't have __dict__
-class DictHttpxRequest(PtbHttpx):
-    pass
+# Below classes are used to monkeypatch attributes since parent classes don't have __dict__
+
+
+class TestHttpxRequest(PtbHttpx):
+    async def _request_wrapper(
+        self,
+        method: str,
+        url: str,
+        data: Optional[JSONDict],
+        files: Dict[str, Tuple[str, bytes, str]],
+        read_timeout: float = None,
+    ) -> bytes:
+        try:
+            return await super()._request_wrapper(method, url, data, files, read_timeout)
+        except RetryAfter as e:
+            pytest.xfail(f'Not waiting for flood control: {e}')
+        except TimedOut as e:
+            pytest.xfail(f'Ignoring TimedOut error: {e}')
 
 
 class DictExtBot(ExtBot):
@@ -124,17 +139,23 @@ class DictBot(Bot):
 @pytest.fixture(scope='session')
 @pytest.mark.asyncio
 async def bot(bot_info):
-    _bot = DictExtBot(bot_info['token'], private_key=PRIVATE_KEY, request=DictHttpxRequest(8))
-    await _bot.do_init()
-    return _bot
+    async with DictExtBot(
+        bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(8)
+    ) as _bot:
+        print('doing init')
+        await _bot.do_init()
+        print('done. returning bot')
+        yield _bot
 
 
 @pytest.fixture(scope='session')
 @pytest.mark.asyncio
 async def raw_bot(bot_info):
-    _bot = DictBot(bot_info['token'], private_key=PRIVATE_KEY, request=DictHttpxRequest(8))
-    await _bot.do_init()
-    return _bot
+    async with DictBot(
+        bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(8)
+    ) as _bot:
+        await _bot.do_init()
+        yield _bot
 
 
 DEFAULT_BOTS = {}
@@ -271,26 +292,9 @@ async def make_bot(bot_info, **kwargs):
     """
     Tests are executed on tg.ext.ExtBot, as that class only extends the functionality of tg.bot
     """
-    _bot = ExtBot(bot_info['token'], private_key=PRIVATE_KEY, request=DictHttpxRequest(), **kwargs)
+    _bot = ExtBot(bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(), **kwargs)
     await _bot.do_init()
     return _bot
-
-
-class PtbTestHttpx(PtbHttpx):
-    async def _request_wrapper(
-        self,
-        method: str,
-        url: str,
-        data: Optional[JSONDict],
-        files: Dict[str, Tuple[str, bytes, str]],
-        read_timeout: float = None,
-    ) -> bytes:
-        try:
-            return await super()._request_wrapper(method, url, data, files, read_timeout)
-        except RetryAfter as e:
-            pytest.xfail(f'Not waiting for flood control: {e}')
-        except TimedOut as e:
-            pytest.xfail(f'Ignoring TimedOut error: {e}')
 
 
 CMD_PATTERN = re.compile(r'/[\da-z_]{1,32}(?:@\w{1,32})?')
@@ -518,7 +522,7 @@ def check_shortcut_signature(
     return True
 
 
-def check_shortcut_call(
+async def check_shortcut_call(
     shortcut_method: Callable,
     bot: ExtBot,
     bot_method_name: str,
@@ -528,7 +532,7 @@ def check_shortcut_call(
     """
     Checks that a shortcut passes all the existing arguments to the underlying bot method. Use as::
 
-        assert check_shortcut_call(message.reply_text, message.bot, 'send_message')
+        assert await check_shortcut_call(message.reply_text, message.bot, 'send_message')
 
     Args:
         shortcut_method: The shortcut method, e.g. `message.reply_text`
@@ -557,7 +561,7 @@ def check_shortcut_call(
     # auto_pagination: Special casing for InlineQuery.answer
     kwargs = {name: name for name in shortcut_signature.parameters if name != 'auto_pagination'}
 
-    def make_assertion(**kw):
+    async def make_assertion(**kw):
         # name == value makes sure that
         # a) we receive non-None input for all parameters
         # b) we receive the correct input for each kwarg
@@ -578,7 +582,7 @@ def check_shortcut_call(
 
     setattr(bot, bot_method_name, make_assertion)
     try:
-        shortcut_method(**kwargs)
+        await shortcut_method(**kwargs)
     except Exception as exc:
         raise exc
     finally:
