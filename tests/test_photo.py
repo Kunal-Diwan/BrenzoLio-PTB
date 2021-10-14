@@ -17,8 +17,6 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
 from io import BytesIO
-from pathlib import Path
-
 import pytest
 from flaky import flaky
 
@@ -30,12 +28,13 @@ from tests.conftest import (
     check_shortcut_call,
     check_shortcut_signature,
     check_defaults_handling,
+    data_file,
 )
 
 
 @pytest.fixture(scope='function')
 def photo_file():
-    f = open('tests/data/telegram.jpg', 'rb')
+    f = data_file('telegram.jpg').open('rb')
     yield f
     f.close()
 
@@ -44,7 +43,7 @@ def photo_file():
 @pytest.mark.asyncio
 async def _photo(bot, chat_id):
     async def func():
-        with open('tests/data/telegram.jpg', 'rb') as f:
+        with data_file('telegram.jpg').open('rb') as f:
             return (await bot.send_photo(chat_id, photo=f, timeout=50)).photo
 
     return await expect_bad_request(
@@ -253,8 +252,8 @@ class TestPhoto:
     async def test_send_photo_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
@@ -372,8 +371,8 @@ class TestPhoto:
         """
         Regression test for https://github.com/python-telegram-bot/python-telegram-bot/issues/1202
         """
-        with open('tests/data/测试.png', 'rb') as f:
-            message = await bot.send_photo(photo=f, chat_id=chat_id)
+        with data_file('测试.png').open('rb') as f:
+            message = bot.send_photo(photo=f, chat_id=chat_id)
 
         photo = message.photo[-1]
 
@@ -386,22 +385,22 @@ class TestPhoto:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_bytesio_jpg_file(self, bot, chat_id):
-        file_name = 'tests/data/telegram_no_standard_header.jpg'
+        filepath = data_file('telegram_no_standard_header.jpg')
 
         # raw image bytes
-        raw_bytes = BytesIO(open(file_name, 'rb').read())
+        raw_bytes = BytesIO(filepath.read_bytes())
         input_file = InputFile(raw_bytes)
         assert input_file.mimetype == 'application/octet-stream'
 
         # raw image bytes with name info
-        raw_bytes = BytesIO(open(file_name, 'rb').read())
-        raw_bytes.name = file_name
+        raw_bytes = BytesIO(filepath.read_bytes())
+        raw_bytes.name = str(filepath)
         input_file = InputFile(raw_bytes)
         assert input_file.mimetype == 'image/jpeg'
 
         # send raw photo
-        raw_bytes = BytesIO(open(file_name, 'rb').read())
-        message = await bot.send_photo(chat_id, photo=raw_bytes)
+        raw_bytes = BytesIO(filepath.read_bytes())
+        message = bot.send_photo(chat_id, photo=raw_bytes)
         photo = message.photo[-1]
         assert isinstance(photo.file_id, str)
         assert isinstance(photo.file_unique_id, str)

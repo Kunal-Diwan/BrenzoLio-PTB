@@ -17,20 +17,23 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
-from pathlib import Path
-
 import pytest
 from flaky import flaky
 
 from telegram import Document, PhotoSize, Voice, MessageEntity, Bot
 from telegram.error import BadRequest, TelegramError
 from telegram.helpers import escape_markdown
-from tests.conftest import check_shortcut_signature, check_shortcut_call, check_defaults_handling
+from tests.conftest import (
+    check_shortcut_signature,
+    check_shortcut_call,
+    check_defaults_handling,
+    data_file,
+)
 
 
 @pytest.fixture(scope='function')
 def document_file():
-    f = open('tests/data/telegram.png', 'rb')
+    f = data_file('telegram.png').open('rb')
     yield f
     f.close()
 
@@ -38,7 +41,7 @@ def document_file():
 @pytest.fixture(scope='class')
 @pytest.mark.asyncio
 async def document(bot, chat_id):
-    with open('tests/data/telegram.png', 'rb') as f:
+    with data_file('telegram.png').open('rb') as f:
         return (await bot.send_document(chat_id, document=f, timeout=50)).document
 
 
@@ -248,8 +251,8 @@ class TestDocument:
     async def test_send_document_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag

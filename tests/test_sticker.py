@@ -25,12 +25,17 @@ from flaky import flaky
 
 from telegram import Sticker, PhotoSize, StickerSet, Audio, MaskPosition, Bot
 from telegram.error import BadRequest, TelegramError
-from tests.conftest import check_shortcut_call, check_shortcut_signature, check_defaults_handling
+from tests.conftest import (
+    check_shortcut_call,
+    check_shortcut_signature,
+    check_defaults_handling,
+    data_file,
+)
 
 
 @pytest.fixture(scope='function')
 def sticker_file():
-    f = Path('tests/data/telegram.webp').open('rb')
+    f = data_file('telegram.webp').open('rb')
     yield f
     f.close()
 
@@ -38,13 +43,13 @@ def sticker_file():
 @pytest.fixture(scope='class')
 @pytest.mark.asyncio
 async def sticker(bot, chat_id):
-    with Path('tests/data/telegram.webp').open('rb') as f:
+    with data_file('telegram.webp').open('rb') as f:
         return (await bot.send_sticker(chat_id, sticker=f, timeout=50)).sticker
 
 
 @pytest.fixture(scope='function')
 def animated_sticker_file():
-    f = Path('tests/data/telegram_animated_sticker.tgs').open('rb')
+    f = data_file('telegram_animated_sticker.tgs').open('rb')
     yield f
     f.close()
 
@@ -52,7 +57,7 @@ def animated_sticker_file():
 @pytest.fixture(scope='class')
 @pytest.mark.asyncio
 async def animated_sticker(bot, chat_id):
-    with Path('tests/data/telegram_animated_sticker.tgs').open('rb') as f:
+    with data_file('telegram_animated_sticker.tgs').open('rb') as f:
         return (await bot.send_sticker(chat_id, sticker=f, timeout=50)).sticker
 
 
@@ -215,8 +220,8 @@ class TestSticker:
     def test_send_sticker_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
@@ -343,7 +348,7 @@ async def animated_sticker_set(bot):
 
 @pytest.fixture(scope='function')
 def sticker_set_thumb_file():
-    f = open('tests/data/sticker_set_thumb.png', 'rb')
+    f = data_file('sticker_set_thumb.png').open('rb')
     yield f
     f.close()
 
@@ -377,7 +382,7 @@ class TestStickerSet:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_bot_methods_1_png(self, bot, chat_id, sticker_file):
-        with Path('tests/data/telegram_sticker.png').open('rb') as f:
+        with data_file('telegram_sticker.png').open('rb') as f:
             file = bot.upload_sticker_file(95205500, f)
         assert file
         assert await bot.add_sticker_to_set(
@@ -398,7 +403,7 @@ class TestStickerSet:
         assert await bot.add_sticker_to_set(
             chat_id,
             f'animated_test_by_{bot.username}',
-            tgs_sticker=open('tests/data/telegram_animated_sticker.tgs', 'rb'),
+            tgs_sticker=data_file('telegram_animated_sticker.tgs').open('rb'),
             emojis='😄',
         )
 
@@ -465,8 +470,8 @@ class TestStickerSet:
     async def test_upload_sticker_file_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         async def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
@@ -480,8 +485,8 @@ class TestStickerSet:
     def test_create_new_sticker_set_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
@@ -497,8 +502,8 @@ class TestStickerSet:
     def test_add_sticker_to_set_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag
@@ -512,8 +517,8 @@ class TestStickerSet:
     def test_set_sticker_set_thumb_local_files(self, monkeypatch, bot, chat_id):
         # For just test that the correct paths are passed as we have no local bot API set up
         test_flag = False
-        expected = (Path.cwd() / 'tests/data/telegram.jpg/').as_uri()
-        file = 'tests/data/telegram.jpg'
+        file = data_file('telegram.jpg')
+        expected = file.as_uri()
 
         def make_assertion(_, data, *args, **kwargs):
             nonlocal test_flag

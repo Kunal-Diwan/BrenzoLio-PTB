@@ -18,6 +18,8 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 
 import os
+from pathlib import Path
+
 import pytest
 from flaky import flaky
 
@@ -28,12 +30,13 @@ from tests.conftest import (
     check_shortcut_call,
     check_shortcut_signature,
     check_defaults_handling,
+    data_file,
 )
 
 
 @pytest.fixture(scope='function')
 def chatphoto_file():
-    f = open('tests/data/telegram.jpg', 'rb')
+    f = data_file('telegram.jpg').open('rb')
     yield f
     f.close()
 
@@ -67,23 +70,24 @@ class TestChatPhoto:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, chat_photo):
+        jpg_file = Path('telegram.jpg')
         new_file = await bot.get_file(chat_photo.small_file_id)
 
         assert new_file.file_id == chat_photo.small_file_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('telegram.jpg')
+        new_file.download(jpg_file)
 
-        assert os.path.isfile('telegram.jpg')
+        assert jpg_file.is_file()
 
         new_file = await bot.get_file(chat_photo.big_file_id)
 
         assert new_file.file_id == chat_photo.big_file_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('telegram.jpg')
+        new_file.download(jpg_file)
 
-        assert os.path.isfile('telegram.jpg')
+        assert jpg_file.is_file()
 
     @pytest.mark.asyncio
     async def test_send_with_chat_photo(self, monkeypatch, bot, super_group_id, chat_photo):
