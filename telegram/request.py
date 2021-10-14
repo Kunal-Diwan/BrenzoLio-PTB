@@ -105,14 +105,8 @@ class PtbRequestBase(abc.ABC):
                 # TODO p3: Is this really necessary? Seems like an ancient relic.
                 data[key] = str(val)
             elif key == 'media':
-                # One media or multiple
-                if isinstance(val, InputMedia):
-                    # Attach and set val to attached name
-                    data[key] = val.to_json()
-                    if isinstance(val.media, InputFile):  # type: ignore
-                        files[val.media.attach] = val.media.field_tuple
-                        del data[val.media.attach]
-                else:
+                # List of media
+                if isinstance(val, list):
                     # Attach and set val to attached name for all
                     media = []
                     for med in val:
@@ -120,18 +114,31 @@ class PtbRequestBase(abc.ABC):
                         media.append(media_dict)
                         if isinstance(med.media, InputFile):
                             files[med.media.attach] = med.media.field_tuple
-                            del data[med.media.attach]
+                            # med.media = None
                             # if the file has a thumb, we also need to attach it to the data
                             if "thumb" in media_dict:
                                 files[med.thumb.attach] = med.thumb.field_tuple
-                                del data[med.thumb.attach]
+                                # med.thumb = None
                     data[key] = json.dumps(media)
+                # Single media
+                else:
+                    # Attach and set val to attached name
+                    media_dict = val.to_dict()
+                    if isinstance(val.media, InputFile):
+                        files[val.media.attach] = val.media.field_tuple
+
+                        # if the file has a thumb, we also need to attach it to the data
+                        if "thumb" in media_dict:
+                            files[val.thumb.attach] = val.thumb.field_tuple
+                    data[key] = json.dumps(media_dict)
             elif isinstance(val, list):
                 # In case we're sending files, we need to json-dump lists manually
                 # As we can't know if that's the case, we just json-dump here
                 data[key] = json.dumps(val)
 
-        result = await self._request_wrapper('POST', url, data, files, read_timeout=timeout)
+        result = await self._request_wrapper(
+            method='POST', url=url, data=data, files=files, read_timeout=timeout
+        )
         return self._parse(result)
 
     async def retrieve(self, url: str, timeout: float = None) -> bytes:

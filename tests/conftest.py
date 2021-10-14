@@ -142,9 +142,7 @@ async def bot(bot_info):
     async with DictExtBot(
         bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(8)
     ) as _bot:
-        print('doing init')
         await _bot.do_init()
-        print('done. returning bot')
         yield _bot
 
 
@@ -171,7 +169,6 @@ async def default_bot(request, bot_info):
         yield default_bot
     else:
         default_bot = await make_bot(bot_info, **{'defaults': defaults})
-        await default_bot.do_init()
         DEFAULT_BOTS[defaults] = default_bot
         yield default_bot
 
@@ -184,7 +181,6 @@ async def tz_bot(timezone, bot_info):
         yield default_bot
     else:
         default_bot = await make_bot(bot_info, **{'defaults': defaults})
-        await default_bot.do_init()
         DEFAULT_BOTS[defaults] = default_bot
         yield default_bot
 
@@ -293,7 +289,9 @@ async def make_bot(bot_info, **kwargs):
     Tests are executed on tg.ext.ExtBot, as that class only extends the functionality of tg.bot
     """
     _bot = ExtBot(bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(), **kwargs)
-    await _bot.do_init()
+    async with _bot:
+        await _bot.do_init()
+
     return _bot
 
 

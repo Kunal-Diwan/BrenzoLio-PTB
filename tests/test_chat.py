@@ -179,8 +179,8 @@ class TestChat:
         assert await check_shortcut_call(chat.get_member_count, chat.bot, 'get_chat_member_count')
         assert await check_defaults_handling(chat.get_member_count, chat.bot)
 
-        monkeypatch.setattr(chat.bot, 'get_chat_members_count', make_assertion)
-        assert await chat.get_members_count()
+        monkeypatch.setattr(chat.bot, 'get_chat_member_count', make_assertion)
+        assert await chat.get_member_count()
 
     @pytest.mark.asyncio
     async def test_get_member(self, monkeypatch, chat):
@@ -206,10 +206,10 @@ class TestChat:
 
         assert check_shortcut_signature(Chat.ban_member, Bot.ban_chat_member, ['chat_id'], [])
         assert await check_shortcut_call(chat.ban_member, chat.bot, 'ban_chat_member')
-        assert await check_defaults_handling(chat.kick_member, chat.bot)
+        assert await check_defaults_handling(chat.ban_member, chat.bot)
 
-        monkeypatch.setattr(chat.bot, 'kick_chat_member', make_assertion)
-        assert await chat.kick_member(user_id=42, until_date=43)
+        monkeypatch.setattr(chat.bot, 'ban_chat_member', make_assertion)
+        assert await chat.ban_member(user_id=42, until_date=43)
 
     @pytest.mark.parametrize('only_if_banned', [True, False, None])
     @pytest.mark.asyncio
@@ -438,18 +438,9 @@ class TestChat:
             description = kwargs['description'] == 'description'
             payload = kwargs['payload'] == 'payload'
             provider_token = kwargs['provider_token'] == 'provider_token'
-            start_parameter = kwargs['start_parameter'] == 'start_parameter'
             currency = kwargs['currency'] == 'currency'
             prices = kwargs['prices'] == 'prices'
-            args = (
-                title
-                and description
-                and payload
-                and provider_token
-                and start_parameter
-                and currency
-                and prices
-            )
+            args = title and description and payload and provider_token and currency and prices
             return kwargs['chat_id'] == chat.id and args
 
         assert check_shortcut_signature(Chat.send_invoice, Bot.send_invoice, ['chat_id'], [])
@@ -462,7 +453,6 @@ class TestChat:
             'description',
             'payload',
             'provider_token',
-            'start_parameter',
             'currency',
             'prices',
         )

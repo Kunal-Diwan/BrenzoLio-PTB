@@ -832,8 +832,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_audio, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_audio', make_assertion)
-        assert message.reply_audio(audio='test_audio')
-        assert message.reply_audio(audio='test_audio', quote=True)
+        assert await message.reply_audio(audio='test_audio')
+        assert await message.reply_audio(audio='test_audio', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_document(self, monkeypatch, message):
@@ -1530,7 +1530,7 @@ class TestMessage:
             message.chat.type = Chat.GROUP
             assert message._quote(None, None)
         finally:
-            message.bot.defaults = None
+            message.bot._defaults = None
 
     def test_equality(self):
         id_ = 1

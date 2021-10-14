@@ -107,13 +107,14 @@ class TestAnimation:
         assert message.animation.thumb.height == self.height
 
     @flaky(3, 1)
-    def test_send_animation_custom_filename(self, bot, chat_id, animation_file, monkeypatch):
-        def make_assertion(url, data, **kwargs):
+    @pytest.mark.asyncio
+    async def test_send_animation_custom_filename(self, bot, chat_id, animation_file, monkeypatch):
+        async def make_assertion(url, data, **kwargs):
             return data['animation'].filename == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
-        assert bot.send_animation(chat_id, animation_file, filename='custom_filename')
+        assert await bot.send_animation(chat_id, animation_file, filename='custom_filename')
         monkeypatch.delattr(bot.request, 'post')
 
     @flaky(3, 1)
@@ -331,7 +332,7 @@ class TestAnimation:
         assert await check_defaults_handling(animation.get_file, animation.bot)
 
         monkeypatch.setattr(animation.bot, 'get_file', make_assertion)
-        assert animation.get_file()
+        assert await animation.get_file()
 
     def test_equality(self):
         a = Animation(

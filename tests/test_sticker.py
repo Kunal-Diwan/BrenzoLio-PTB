@@ -264,7 +264,7 @@ class TestSticker:
             assert message.reply_to_message is None
         else:
             with pytest.raises(BadRequest, match='message not found'):
-                default_bot.send_sticker(
+                await default_bot.send_sticker(
                     chat_id, sticker, reply_to_message_id=reply_to_message.message_id
                 )
 
@@ -337,8 +337,8 @@ async def sticker_set(bot):
 
 
 @pytest.fixture(scope='function')
+@pytest.mark.asyncio
 async def animated_sticker_set(bot):
-    print(bot.username)
     ss = await bot.get_sticker_set(f'animated_test_by_{bot.username}')
     if len(ss.stickers) > 100:
         try:

@@ -143,9 +143,9 @@ xfail = pytest.mark.xfail(
 @pytest.fixture(scope='function')
 @pytest.mark.asyncio
 async def inst(request, bot_info, default_bot):
-    _bot = Bot(bot_info['token']) if request.param == 'bot' else default_bot
-    await _bot.do_init()
-    return _bot
+    async with Bot(bot_info['token']) if request.param == 'bot' else default_bot as _bot:
+        await _bot.do_init()
+        yield _bot
 
 
 class TestBot:
@@ -176,9 +176,10 @@ class TestBot:
         with pytest.raises(InvalidToken, match='Invalid token'):
             Bot(token)
 
-    def test_log_decorator(self, bot, caplog):
+    @pytest.mark.asyncio
+    async def test_log_decorator(self, bot, caplog):
         with caplog.at_level(logging.DEBUG):
-            bot.get_me()
+            await bot.get_me()
             assert len(caplog.records) == 3
             assert caplog.records[0].getMessage().startswith('Entering: get_me')
             assert caplog.records[-1].getMessage().startswith('Exiting: get_me')

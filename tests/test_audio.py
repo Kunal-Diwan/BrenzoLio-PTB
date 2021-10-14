@@ -139,7 +139,7 @@ class TestAudio:
         assert new_file.file_unique_id == audio.file_unique_id
         assert str(new_file.file_path).startswith('https://')
 
-        new_file.download('telegram.mp3')
+        await new_file.download('telegram.mp3')
 
         assert Path('telegram.mp3').is_file()
 
@@ -315,7 +315,7 @@ class TestAudio:
         assert await check_defaults_handling(audio.get_file, audio.bot)
 
         monkeypatch.setattr(audio.bot, 'get_file', make_assertion)
-        assert audio.get_file()
+        assert await audio.get_file()
 
     def test_equality(self, audio):
         a = Audio(audio.file_id, audio.file_unique_id, audio.duration)

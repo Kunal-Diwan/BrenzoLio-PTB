@@ -491,7 +491,7 @@ class TestSendMediaGroup:
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
         async def test(*args, **kwargs):
-            data = kwargs['fields']
+            data = kwargs['files']
             video_check = data[input_video.media.attach] == input_video.media.field_tuple
             thumb_check = data[input_video.thumb.attach] == input_video.thumb.field_tuple
             result = video_check and thumb_check
@@ -594,7 +594,7 @@ class TestSendMediaGroup:
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
         async def test(*args, **kwargs):
-            data = kwargs['fields']
+            data = kwargs['files']
             video_check = data[input_video.media.attach] == input_video.media.field_tuple
             thumb_check = data[input_video.thumb.attach] == input_video.thumb.field_tuple
             result = video_check and thumb_check
@@ -661,9 +661,9 @@ class TestSendMediaGroup:
         assert message.caption_entities == test_entities
 
         # Remove caption to avoid "Message not changed"
-        message.edit_caption()
+        await message.edit_caption()
 
-        message = default_bot.edit_message_media(
+        message = await default_bot.edit_message_media(
             build_media(parse_mode=ParseMode.MARKDOWN_V2, med_type=media_type),
             message.chat_id,
             message.message_id,
@@ -672,9 +672,9 @@ class TestSendMediaGroup:
         assert message.caption_entities == test_entities
 
         # Remove caption to avoid "Message not changed"
-        message.edit_caption()
+        await message.edit_caption()
 
-        message = default_bot.edit_message_media(
+        message = await default_bot.edit_message_media(
             build_media(parse_mode=None, med_type=media_type),
             message.chat_id,
             message.message_id,
