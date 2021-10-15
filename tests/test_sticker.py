@@ -142,7 +142,7 @@ class TestSticker:
         assert new_file.file_unique_id == sticker.file_unique_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('telegram.webp')
+        await new_file.download('telegram.webp')
 
         assert Path('telegram.webp').is_file()
 

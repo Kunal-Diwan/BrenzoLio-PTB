@@ -120,14 +120,14 @@ class TestVideo:
         assert message.video.file_name == self.file_name
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
-    def test_send_video_custom_filename(self, bot, chat_id, video_file, monkeypatch):
-        def make_assertion(url, data, **kwargs):
+    @pytest.mark.asyncio
+    async def test_send_video_custom_filename(self, bot, chat_id, video_file, monkeypatch):
+        async def make_assertion(url, data, **kwargs):
             return data['video'].filename == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
-        assert bot.send_video(chat_id, video_file, filename='custom_filename')
+        assert await bot.send_video(chat_id, video_file, filename='custom_filename')
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -202,7 +202,6 @@ class TestVideo:
         assert message
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_video_default_parse_mode_1(self, default_bot, chat_id, video):
@@ -214,7 +213,6 @@ class TestVideo:
         assert message.caption == test_string
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_video_default_parse_mode_2(self, default_bot, chat_id, video):
@@ -227,7 +225,6 @@ class TestVideo:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_video_default_parse_mode_3(self, default_bot, chat_id, video):
@@ -255,7 +252,6 @@ class TestVideo:
         assert test_flag
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [
@@ -352,7 +348,7 @@ class TestVideo:
         assert await check_defaults_handling(video.get_file, video.bot)
 
         monkeypatch.setattr(video.bot, 'get_file', make_assertion)
-        assert video.get_file()
+        assert await video.get_file()
 
     def test_equality(self, video):
         a = Video(video.file_id, video.file_unique_id, self.width, self.height, self.duration)

@@ -102,14 +102,16 @@ class TestVideoNote:
         assert message.video_note.thumb.height == self.thumb_height
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
-    def test_send_video_note_custom_filename(self, bot, chat_id, video_note_file, monkeypatch):
-        def make_assertion(url, data, **kwargs):
+    @pytest.mark.asyncio
+    async def test_send_video_note_custom_filename(
+        self, bot, chat_id, video_note_file, monkeypatch
+    ):
+        async def make_assertion(url, data, **kwargs):
             return data['video_note'].filename == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
-        assert bot.send_video_note(chat_id, video_note_file, filename='custom_filename')
+        assert await bot.send_video_note(chat_id, video_note_file, filename='custom_filename')
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -121,7 +123,7 @@ class TestVideoNote:
         assert new_file.file_unique_id == video_note.file_unique_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('telegram2.mp4')
+        await new_file.download('telegram2.mp4')
 
         assert os.path.isfile('telegram2.mp4')
 
@@ -183,7 +185,6 @@ class TestVideoNote:
         assert test_flag
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [
@@ -245,7 +246,7 @@ class TestVideoNote:
         assert await check_defaults_handling(video_note.get_file, video_note.bot)
 
         monkeypatch.setattr(video_note.bot, 'get_file', make_assertion)
-        assert video_note.get_file()
+        assert await video_note.get_file()
 
     def test_equality(self, video_note):
         a = VideoNote(video_note.file_id, video_note.file_unique_id, self.length, self.duration)

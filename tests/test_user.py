@@ -142,7 +142,7 @@ class TestUser:
         assert await check_defaults_handling(user.get_profile_photos, user.bot)
 
         monkeypatch.setattr(user.bot, 'get_user_profile_photos', make_assertion)
-        assert user.get_profile_photos()
+        assert await user.get_profile_photos()
 
     @pytest.mark.asyncio
     async def test_instance_method_pin_message(self, monkeypatch, user):
@@ -154,7 +154,7 @@ class TestUser:
         assert await check_defaults_handling(user.pin_message, user.bot)
 
         monkeypatch.setattr(user.bot, 'pin_chat_message', make_assertion)
-        assert user.pin_message(1)
+        assert await user.pin_message(1)
 
     @pytest.mark.asyncio
     async def test_instance_method_unpin_message(self, monkeypatch, user):
@@ -168,7 +168,7 @@ class TestUser:
         assert await check_defaults_handling(user.unpin_message, user.bot)
 
         monkeypatch.setattr(user.bot, 'unpin_chat_message', make_assertion)
-        assert user.unpin_message()
+        assert await user.unpin_message()
 
     @pytest.mark.asyncio
     async def test_instance_method_unpin_all_messages(self, monkeypatch, user):
@@ -184,7 +184,7 @@ class TestUser:
         assert await check_defaults_handling(user.unpin_all_messages, user.bot)
 
         monkeypatch.setattr(user.bot, 'unpin_all_chat_messages', make_assertion)
-        assert user.unpin_all_messages()
+        assert await user.unpin_all_messages()
 
     @pytest.mark.asyncio
     async def test_instance_method_send_message(self, monkeypatch, user):
@@ -196,7 +196,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_message, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_message', make_assertion)
-        assert user.send_message('test')
+        assert await user.send_message('test')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_photo(self, monkeypatch, user):
@@ -208,7 +208,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_photo, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_photo', make_assertion)
-        assert user.send_photo('test_photo')
+        assert await user.send_photo('test_photo')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_media_group(self, monkeypatch, user):
@@ -222,7 +222,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_media_group, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_media_group', make_assertion)
-        assert user.send_media_group('test_media_group')
+        assert await user.send_media_group('test_media_group')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_audio(self, monkeypatch, user):
@@ -234,7 +234,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_audio, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_audio', make_assertion)
-        assert user.send_audio('test_audio')
+        assert await user.send_audio('test_audio')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_chat_action(self, monkeypatch, user):
@@ -248,7 +248,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_chat_action, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_chat_action', make_assertion)
-        assert user.send_chat_action('test_chat_action')
+        assert await user.send_chat_action('test_chat_action')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_contact(self, monkeypatch, user):
@@ -260,7 +260,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_contact, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_contact', make_assertion)
-        assert user.send_contact(phone_number='test_contact')
+        assert await user.send_contact(phone_number='test_contact')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_dice(self, monkeypatch, user):
@@ -272,7 +272,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_dice, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_dice', make_assertion)
-        assert user.send_dice(emoji='test_dice')
+        assert await user.send_dice(emoji='test_dice')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_document(self, monkeypatch, user):
@@ -284,7 +284,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_document, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_document', make_assertion)
-        assert user.send_document('test_document')
+        assert await user.send_document('test_document')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_game(self, monkeypatch, user):
@@ -296,7 +296,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_game, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_game', make_assertion)
-        assert user.send_game(game_short_name='test_game')
+        assert await user.send_game(game_short_name='test_game')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_invoice(self, monkeypatch, user):
@@ -324,7 +324,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_invoice, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_invoice', make_assertion)
-        assert user.send_invoice(
+        assert await user.send_invoice(
             'title',
             'description',
             'payload',
@@ -344,7 +344,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_location, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_location', make_assertion)
-        assert user.send_location('test_location')
+        assert await user.send_location('test_location')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_sticker(self, monkeypatch, user):
@@ -356,7 +356,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_sticker, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_sticker', make_assertion)
-        assert user.send_sticker('test_sticker')
+        assert await user.send_sticker('test_sticker')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_video(self, monkeypatch, user):
@@ -368,7 +368,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_video, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_video', make_assertion)
-        assert user.send_video('test_video')
+        assert await user.send_video('test_video')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_venue(self, monkeypatch, user):
@@ -380,7 +380,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_venue, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_venue', make_assertion)
-        assert user.send_venue(title='test_venue')
+        assert await user.send_venue(title='test_venue')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_video_note(self, monkeypatch, user):
@@ -392,7 +392,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_video_note, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_video_note', make_assertion)
-        assert user.send_video_note('test_video_note')
+        assert await user.send_video_note('test_video_note')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_voice(self, monkeypatch, user):
@@ -404,7 +404,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_voice, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_voice', make_assertion)
-        assert user.send_voice('test_voice')
+        assert await user.send_voice('test_voice')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_animation(self, monkeypatch, user):
@@ -416,7 +416,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_animation, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_animation', make_assertion)
-        assert user.send_animation('test_animation')
+        assert await user.send_animation('test_animation')
 
     @pytest.mark.asyncio
     async def test_instance_method_send_poll(self, monkeypatch, user):
@@ -428,7 +428,7 @@ class TestUser:
         assert await check_defaults_handling(user.send_poll, user.bot)
 
         monkeypatch.setattr(user.bot, 'send_poll', make_assertion)
-        assert user.send_poll(question='test_poll', options=[1, 2])
+        assert await user.send_poll(question='test_poll', options=[1, 2])
 
     @pytest.mark.asyncio
     async def test_instance_method_send_copy(self, monkeypatch, user):
@@ -443,7 +443,7 @@ class TestUser:
         assert await check_defaults_handling(user.copy_message, user.bot)
 
         monkeypatch.setattr(user.bot, 'copy_message', make_assertion)
-        assert user.send_copy(from_chat_id='from_chat_id', message_id='message_id')
+        assert await user.send_copy(from_chat_id='from_chat_id', message_id='message_id')
 
     @pytest.mark.asyncio
     async def test_instance_method_copy_message(self, monkeypatch, user):
@@ -458,9 +458,10 @@ class TestUser:
         assert await check_defaults_handling(user.copy_message, user.bot)
 
         monkeypatch.setattr(user.bot, 'copy_message', make_assertion)
-        assert user.copy_message(chat_id='chat_id', message_id='message_id')
+        assert await user.copy_message(chat_id='chat_id', message_id='message_id')
 
-    def test_mention_html(self, user):
+    @pytest.mark.asyncio
+    async def test_mention_html(self, user):
         expected = '<a href="tg://user?id={}">{}</a>'
 
         assert user.mention_html() == expected.format(user.id, user.full_name)
@@ -469,7 +470,8 @@ class TestUser:
         )
         assert user.mention_html(user.username) == expected.format(user.id, user.username)
 
-    def test_mention_markdown(self, user):
+    @pytest.mark.asyncio
+    async def test_mention_markdown(self, user):
         expected = '[{}](tg://user?id={})'
 
         assert user.mention_markdown() == expected.format(user.full_name, user.id)
@@ -478,7 +480,8 @@ class TestUser:
         )
         assert user.mention_markdown(user.username) == expected.format(user.username, user.id)
 
-    def test_mention_markdown_v2(self, user):
+    @pytest.mark.asyncio
+    async def test_mention_markdown_v2(self, user):
         user.first_name = 'first{name'
         user.last_name = 'last_name'
 

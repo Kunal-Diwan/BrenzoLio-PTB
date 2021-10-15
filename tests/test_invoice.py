@@ -136,7 +136,7 @@ class TestInvoice:
 
         # We do this next one as safety guard to make sure that we pass all of the optional
         # parameters correctly because #2526 went unnoticed for 3 years …
-        def make_assertion(*args, **_):
+        async def make_assertion(*args, **_):
             kwargs = args[1]
             return (
                 kwargs['chat_id'] == 'chat_id'
@@ -164,7 +164,7 @@ class TestInvoice:
             )
 
         monkeypatch.setattr(bot, '_message', make_assertion)
-        assert bot.send_invoice(
+        assert await bot.send_invoice(
             chat_id='chat_id',
             title='title',
             description='description',
@@ -189,14 +189,15 @@ class TestInvoice:
             is_flexible='is_flexible',
         )
 
-    def test_send_object_as_provider_data(self, monkeypatch, bot, chat_id, provider_token):
-        def test(url, data, **kwargs):
+    @pytest.mark.asyncio
+    async def test_send_object_as_provider_data(self, monkeypatch, bot, chat_id, provider_token):
+        async def test(url, data, **kwargs):
             # depends on whether we're using ujson
             return data['provider_data'] in ['{"test_data": 123456789}', '{"test_data":123456789}']
 
         monkeypatch.setattr(bot.request, 'post', test)
 
-        assert bot.send_invoice(
+        assert await bot.send_invoice(
             chat_id,
             self.title,
             self.description,

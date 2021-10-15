@@ -82,7 +82,7 @@ class TestInlineQuery:
         assert await check_defaults_handling(inline_query.answer, inline_query.bot)
 
         monkeypatch.setattr(inline_query.bot, 'answer_inline_query', make_assertion)
-        assert inline_query.answer(results=[])
+        assert await inline_query.answer(results=[])
 
     @pytest.mark.asyncio
     async def test_answer_error(self, inline_query):
@@ -97,7 +97,7 @@ class TestInlineQuery:
             return offset_matches and inline_query_id_matches
 
         monkeypatch.setattr(inline_query.bot, 'answer_inline_query', make_assertion)
-        assert inline_query.answer(results=[], auto_pagination=True)
+        assert await inline_query.answer(results=[], auto_pagination=True)
 
     def test_equality(self):
         a = InlineQuery(self.id_, User(1, '', False), '', '')

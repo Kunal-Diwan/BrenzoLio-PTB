@@ -78,7 +78,7 @@ class TestShippingQuery:
         assert await check_defaults_handling(shipping_query.answer, shipping_query.bot)
 
         monkeypatch.setattr(shipping_query.bot, 'answer_shipping_query', make_assertion)
-        assert shipping_query.answer(ok=True)
+        assert await shipping_query.answer(ok=True)
 
     def test_equality(self):
         a = ShippingQuery(self.id_, self.from_user, self.invoice_payload, self.shipping_address)

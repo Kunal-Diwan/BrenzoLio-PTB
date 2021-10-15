@@ -300,7 +300,8 @@ class TestMessage:
         assert message['chat_id'] == message.chat_id
         assert message['no_key'] is None
 
-    def test_parse_entity(self):
+    @pytest.mark.asyncio
+    async def test_parse_entity(self):
         text = (
             b'\\U0001f469\\u200d\\U0001f469\\u200d\\U0001f467'
             b'\\u200d\\U0001f467\\U0001f431http://google.com'
@@ -309,7 +310,8 @@ class TestMessage:
         message = Message(1, self.from_user, self.date, self.chat, text=text, entities=[entity])
         assert message.parse_entity(entity) == 'http://google.com'
 
-    def test_parse_caption_entity(self):
+    @pytest.mark.asyncio
+    async def test_parse_caption_entity(self):
         caption = (
             b'\\U0001f469\\u200d\\U0001f469\\u200d\\U0001f467'
             b'\\u200d\\U0001f467\\U0001f431http://google.com'
@@ -320,7 +322,8 @@ class TestMessage:
         )
         assert message.parse_caption_entity(entity) == 'http://google.com'
 
-    def test_parse_entities(self):
+    @pytest.mark.asyncio
+    async def test_parse_entities(self):
         text = (
             b'\\U0001f469\\u200d\\U0001f469\\u200d\\U0001f467'
             b'\\u200d\\U0001f467\\U0001f431http://google.com'
@@ -333,7 +336,8 @@ class TestMessage:
         assert message.parse_entities(MessageEntity.URL) == {entity: 'http://google.com'}
         assert message.parse_entities() == {entity: 'http://google.com', entity_2: 'h'}
 
-    def test_parse_caption_entities(self):
+    @pytest.mark.asyncio
+    async def test_parse_caption_entities(self):
         text = (
             b'\\U0001f469\\u200d\\U0001f469\\u200d\\U0001f467'
             b'\\u200d\\U0001f467\\U0001f431http://google.com'
@@ -349,7 +353,10 @@ class TestMessage:
             caption_entities=[entity_2, entity],
         )
         assert message.parse_caption_entities(MessageEntity.URL) == {entity: 'http://google.com'}
-        assert message.parse_caption_entities() == {entity: 'http://google.com', entity_2: 'h'}
+        assert message.parse_caption_entities() == {
+            entity: 'http://google.com',
+            entity_2: 'h',
+        }
 
     def test_text_html_simple(self):
         test_html_string = (
@@ -574,7 +581,8 @@ class TestMessage:
         )
         assert expected == message.caption_markdown
 
-    def test_parse_entities_url_emoji(self):
+    @pytest.mark.asyncio
+    async def test_parse_entities_url_emoji(self):
         url = b'http://github.com/?unicode=\\u2713\\U0001f469'.decode('unicode-escape')
         text = 'some url'
         link_entity = MessageEntity(type=MessageEntity.URL, offset=0, length=8, url=url)
@@ -655,9 +663,9 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_text, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_message', make_assertion)
-        assert message.reply_text('test')
-        assert message.reply_text('test', quote=True)
-        assert message.reply_text('test', reply_to_message_id=message.message_id, quote=True)
+        assert await message.reply_text('test')
+        assert await message.reply_text('test', quote=True)
+        assert await message.reply_text('test', reply_to_message_id=message.message_id, quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_markdown(self, monkeypatch, message):
@@ -688,9 +696,9 @@ class TestMessage:
         assert text_markdown == test_md_string
 
         monkeypatch.setattr(message.bot, 'send_message', make_assertion)
-        assert message.reply_markdown(self.test_message.text_markdown)
-        assert message.reply_markdown(self.test_message.text_markdown, quote=True)
-        assert message.reply_markdown(
+        assert await message.reply_markdown(self.test_message.text_markdown)
+        assert await message.reply_markdown(self.test_message.text_markdown, quote=True)
+        assert await message.reply_markdown(
             self.test_message.text_markdown, reply_to_message_id=message.message_id, quote=True
         )
 
@@ -724,9 +732,9 @@ class TestMessage:
         assert text_markdown == test_md_string
 
         monkeypatch.setattr(message.bot, 'send_message', make_assertion)
-        assert message.reply_markdown_v2(self.test_message_v2.text_markdown_v2)
-        assert message.reply_markdown_v2(self.test_message_v2.text_markdown_v2, quote=True)
-        assert message.reply_markdown_v2(
+        assert await message.reply_markdown_v2(self.test_message_v2.text_markdown_v2)
+        assert await message.reply_markdown_v2(self.test_message_v2.text_markdown_v2, quote=True)
+        assert await message.reply_markdown_v2(
             self.test_message_v2.text_markdown_v2,
             reply_to_message_id=message.message_id,
             quote=True,
@@ -764,9 +772,9 @@ class TestMessage:
         assert text_html == test_html_string
 
         monkeypatch.setattr(message.bot, 'send_message', make_assertion)
-        assert message.reply_html(self.test_message_v2.text_html)
-        assert message.reply_html(self.test_message_v2.text_html, quote=True)
-        assert message.reply_html(
+        assert await message.reply_html(self.test_message_v2.text_html)
+        assert await message.reply_html(self.test_message_v2.text_html, quote=True)
+        assert await message.reply_html(
             self.test_message_v2.text_html, reply_to_message_id=message.message_id, quote=True
         )
 
@@ -790,8 +798,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_media_group, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_media_group', make_assertion)
-        assert message.reply_media_group(media='reply_media_group')
-        assert message.reply_media_group(media='reply_media_group', quote=True)
+        assert await message.reply_media_group(media='reply_media_group')
+        assert await message.reply_media_group(media='reply_media_group', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_photo(self, monkeypatch, message):
@@ -811,8 +819,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_photo, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_photo', make_assertion)
-        assert message.reply_photo(photo='test_photo')
-        assert message.reply_photo(photo='test_photo', quote=True)
+        assert await message.reply_photo(photo='test_photo')
+        assert await message.reply_photo(photo='test_photo', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_audio(self, monkeypatch, message):
@@ -853,8 +861,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_document, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_document', make_assertion)
-        assert message.reply_document(document='test_document')
-        assert message.reply_document(document='test_document', quote=True)
+        assert await message.reply_document(document='test_document')
+        assert await message.reply_document(document='test_document', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_animation(self, monkeypatch, message):
@@ -874,8 +882,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_animation, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_animation', make_assertion)
-        assert message.reply_animation(animation='test_animation')
-        assert message.reply_animation(animation='test_animation', quote=True)
+        assert await message.reply_animation(animation='test_animation')
+        assert await message.reply_animation(animation='test_animation', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_sticker(self, monkeypatch, message):
@@ -895,8 +903,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_sticker, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_sticker', make_assertion)
-        assert message.reply_sticker(sticker='test_sticker')
-        assert message.reply_sticker(sticker='test_sticker', quote=True)
+        assert await message.reply_sticker(sticker='test_sticker')
+        assert await message.reply_sticker(sticker='test_sticker', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_video(self, monkeypatch, message):
@@ -916,8 +924,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_video, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_video', make_assertion)
-        assert message.reply_video(video='test_video')
-        assert message.reply_video(video='test_video', quote=True)
+        assert await message.reply_video(video='test_video')
+        assert await message.reply_video(video='test_video', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_video_note(self, monkeypatch, message):
@@ -937,8 +945,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_video_note, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_video_note', make_assertion)
-        assert message.reply_video_note(video_note='test_video_note')
-        assert message.reply_video_note(video_note='test_video_note', quote=True)
+        assert await message.reply_video_note(video_note='test_video_note')
+        assert await message.reply_video_note(video_note='test_video_note', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_voice(self, monkeypatch, message):
@@ -958,8 +966,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_voice, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_voice', make_assertion)
-        assert message.reply_voice(voice='test_voice')
-        assert message.reply_voice(voice='test_voice', quote=True)
+        assert await message.reply_voice(voice='test_voice')
+        assert await message.reply_voice(voice='test_voice', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_location(self, monkeypatch, message):
@@ -979,8 +987,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_location, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_location', make_assertion)
-        assert message.reply_location(location='test_location')
-        assert message.reply_location(location='test_location', quote=True)
+        assert await message.reply_location(location='test_location')
+        assert await message.reply_location(location='test_location', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_venue(self, monkeypatch, message):
@@ -1000,8 +1008,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_venue, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_venue', make_assertion)
-        assert message.reply_venue(venue='test_venue')
-        assert message.reply_venue(venue='test_venue', quote=True)
+        assert await message.reply_venue(venue='test_venue')
+        assert await message.reply_venue(venue='test_venue', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_contact(self, monkeypatch, message):
@@ -1021,8 +1029,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_contact, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_contact', make_assertion)
-        assert message.reply_contact(contact='test_contact')
-        assert message.reply_contact(contact='test_contact', quote=True)
+        assert await message.reply_contact(contact='test_contact')
+        assert await message.reply_contact(contact='test_contact', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_poll(self, monkeypatch, message):
@@ -1041,8 +1049,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_poll, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_poll', make_assertion)
-        assert message.reply_poll(question='test_poll', options=['1', '2', '3'])
-        assert message.reply_poll(question='test_poll', quote=True, options=['1', '2', '3'])
+        assert await message.reply_poll(question='test_poll', options=['1', '2', '3'])
+        assert await message.reply_poll(question='test_poll', quote=True, options=['1', '2', '3'])
 
     @pytest.mark.asyncio
     async def test_reply_dice(self, monkeypatch, message):
@@ -1060,8 +1068,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_dice, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_dice', make_assertion)
-        assert message.reply_dice(disable_notification=True)
-        assert message.reply_dice(disable_notification=True, quote=True)
+        assert await message.reply_dice(disable_notification=True)
+        assert await message.reply_dice(disable_notification=True, quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_action(self, monkeypatch, message: Message):
@@ -1079,7 +1087,7 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_chat_action, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_chat_action', make_assertion)
-        assert message.reply_chat_action(action=ChatAction.TYPING)
+        assert await message.reply_chat_action(action=ChatAction.TYPING)
 
     @pytest.mark.asyncio
     async def test_reply_game(self, monkeypatch, message):
@@ -1093,8 +1101,8 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_game, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_game', make_assertion)
-        assert message.reply_game(game_short_name='test_game')
-        assert message.reply_game(game_short_name='test_game', quote=True)
+        assert await message.reply_game(game_short_name='test_game')
+        assert await message.reply_game(game_short_name='test_game', quote=True)
 
     @pytest.mark.asyncio
     async def test_reply_invoice(self, monkeypatch, message):
@@ -1124,7 +1132,7 @@ class TestMessage:
         assert await check_defaults_handling(message.reply_invoice, message.bot)
 
         monkeypatch.setattr(message.bot, 'send_invoice', make_assertion)
-        assert message.reply_invoice(
+        assert await message.reply_invoice(
             'title',
             'description',
             'payload',
@@ -1133,7 +1141,7 @@ class TestMessage:
             'currency',
             'prices',
         )
-        assert message.reply_invoice(
+        assert await message.reply_invoice(
             'title',
             'description',
             'payload',
@@ -1220,14 +1228,14 @@ class TestMessage:
         assert await check_defaults_handling(message.copy, message.bot)
 
         monkeypatch.setattr(message.bot, 'copy_message', make_assertion)
-        assert message.reply_copy(123456, 456789, disable_notification=disable_notification)
-        assert message.reply_copy(
+        assert await message.reply_copy(123456, 456789, disable_notification=disable_notification)
+        assert await message.reply_copy(
             123456, 456789, reply_markup=keyboard, disable_notification=disable_notification
         )
-        assert message.reply_copy(
+        assert await message.reply_copy(
             123456, 456789, quote=True, disable_notification=disable_notification
         )
-        assert message.reply_copy(
+        assert await message.reply_copy(
             123456,
             456789,
             quote=True,
@@ -1259,7 +1267,7 @@ class TestMessage:
         assert await check_defaults_handling(message.edit_text, message.bot)
 
         monkeypatch.setattr(message.bot, 'edit_message_text', make_assertion)
-        assert message.edit_text(text='test')
+        assert await message.edit_text(text='test')
 
     @pytest.mark.asyncio
     async def test_edit_caption(self, monkeypatch, message):
@@ -1285,7 +1293,7 @@ class TestMessage:
         assert await check_defaults_handling(message.edit_caption, message.bot)
 
         monkeypatch.setattr(message.bot, 'edit_message_caption', make_assertion)
-        assert message.edit_caption(caption='new caption')
+        assert await message.edit_caption(caption='new caption')
 
     @pytest.mark.asyncio
     async def test_edit_media(self, monkeypatch, message):
@@ -1311,7 +1319,7 @@ class TestMessage:
         assert await check_defaults_handling(message.edit_media, message.bot)
 
         monkeypatch.setattr(message.bot, 'edit_message_media', make_assertion)
-        assert message.edit_media('my_media')
+        assert await message.edit_media('my_media')
 
     @pytest.mark.asyncio
     async def test_edit_reply_markup(self, monkeypatch, message):
@@ -1337,7 +1345,7 @@ class TestMessage:
         assert await check_defaults_handling(message.edit_reply_markup, message.bot)
 
         monkeypatch.setattr(message.bot, 'edit_message_reply_markup', make_assertion)
-        assert message.edit_reply_markup(reply_markup=[['1', '2']])
+        assert await message.edit_reply_markup(reply_markup=[['1', '2']])
 
     @pytest.mark.asyncio
     async def test_edit_live_location(self, monkeypatch, message):
@@ -1364,7 +1372,7 @@ class TestMessage:
         assert await check_defaults_handling(message.edit_live_location, message.bot)
 
         monkeypatch.setattr(message.bot, 'edit_message_live_location', make_assertion)
-        assert message.edit_live_location(latitude=1, longitude=2)
+        assert await message.edit_live_location(latitude=1, longitude=2)
 
     @pytest.mark.asyncio
     async def test_stop_live_location(self, monkeypatch, message):
@@ -1389,7 +1397,7 @@ class TestMessage:
         assert await check_defaults_handling(message.stop_live_location, message.bot)
 
         monkeypatch.setattr(message.bot, 'stop_message_live_location', make_assertion)
-        assert message.stop_live_location()
+        assert await message.stop_live_location()
 
     @pytest.mark.asyncio
     async def test_set_game_score(self, monkeypatch, message):
@@ -1416,7 +1424,7 @@ class TestMessage:
         assert await check_defaults_handling(message.set_game_score, message.bot)
 
         monkeypatch.setattr(message.bot, 'set_game_score', make_assertion)
-        assert message.set_game_score(user_id=1, score=2)
+        assert await message.set_game_score(user_id=1, score=2)
 
     @pytest.mark.asyncio
     async def test_get_game_high_scores(self, monkeypatch, message):
@@ -1442,7 +1450,7 @@ class TestMessage:
         assert await check_defaults_handling(message.get_game_high_scores, message.bot)
 
         monkeypatch.setattr(message.bot, 'get_game_high_scores', make_assertion)
-        assert message.get_game_high_scores(user_id=1)
+        assert await message.get_game_high_scores(user_id=1)
 
     @pytest.mark.asyncio
     async def test_delete(self, monkeypatch, message):
@@ -1458,7 +1466,7 @@ class TestMessage:
         assert await check_defaults_handling(message.delete, message.bot)
 
         monkeypatch.setattr(message.bot, 'delete_message', make_assertion)
-        assert message.delete()
+        assert await message.delete()
 
     @pytest.mark.asyncio
     async def test_stop_poll(self, monkeypatch, message):
@@ -1474,11 +1482,11 @@ class TestMessage:
         assert await check_defaults_handling(message.stop_poll, message.bot)
 
         monkeypatch.setattr(message.bot, 'stop_poll', make_assertion)
-        assert message.stop_poll()
+        assert await message.stop_poll()
 
     @pytest.mark.asyncio
     async def test_pin(self, monkeypatch, message):
-        def make_assertion(*args, **kwargs):
+        async def make_assertion(*args, **kwargs):
             chat_id = kwargs['chat_id'] == message.chat_id
             message_id = kwargs['message_id'] == message.message_id
             return chat_id and message_id
@@ -1490,11 +1498,11 @@ class TestMessage:
         assert await check_defaults_handling(message.pin, message.bot)
 
         monkeypatch.setattr(message.bot, 'pin_chat_message', make_assertion)
-        assert message.pin()
+        assert await message.pin()
 
     @pytest.mark.asyncio
     async def test_unpin(self, monkeypatch, message):
-        def make_assertion(*args, **kwargs):
+        async def make_assertion(*args, **kwargs):
             chat_id = kwargs['chat_id'] == message.chat_id
             message_id = kwargs['message_id'] == message.message_id
             return chat_id and message_id
@@ -1511,7 +1519,7 @@ class TestMessage:
         assert await check_defaults_handling(message.unpin, message.bot)
 
         monkeypatch.setattr(message.bot, 'unpin_chat_message', make_assertion)
-        assert message.unpin()
+        assert await message.unpin()
 
     def test_default_quote(self, message):
         message.bot._defaults = Defaults()

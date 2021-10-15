@@ -95,7 +95,7 @@ class TestPreCheckoutQuery:
         assert await check_defaults_handling(pre_checkout_query.answer, pre_checkout_query.bot)
 
         monkeypatch.setattr(pre_checkout_query.bot, 'answer_pre_checkout_query', make_assertion)
-        assert pre_checkout_query.answer(ok=True)
+        assert await pre_checkout_query.answer(ok=True)
 
     def test_equality(self):
         a = PreCheckoutQuery(

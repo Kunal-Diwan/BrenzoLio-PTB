@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
+from pathlib import Path
+
 import pytest
 from flaky import flaky
 
@@ -108,9 +110,9 @@ class TestDocument:
         assert new_file.file_unique_id == document.file_unique_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('telegram.png')
+        await new_file.download('telegram.png')
 
-        assert os.path.isfile('telegram.png')
+        assert Path('telegram.png').is_file()
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -174,7 +176,6 @@ class TestDocument:
         assert message.caption_entities == entities
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_document_default_parse_mode_1(self, default_bot, chat_id, document):
@@ -186,7 +187,6 @@ class TestDocument:
         assert message.caption == test_string
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_document_default_parse_mode_2(self, default_bot, chat_id, document):
@@ -199,7 +199,6 @@ class TestDocument:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_document_default_parse_mode_3(self, default_bot, chat_id, document):
@@ -212,7 +211,6 @@ class TestDocument:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [
@@ -318,7 +316,7 @@ class TestDocument:
         assert await check_defaults_handling(document.get_file, document.bot)
 
         monkeypatch.setattr(document.bot, 'get_file', make_assertion)
-        assert document.get_file()
+        assert await document.get_file()
 
     def test_equality(self, document):
         a = Document(document.file_id, document.file_unique_id)

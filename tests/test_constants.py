@@ -28,7 +28,7 @@ class TestConstants:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_max_message_length(self, bot, chat_id):
-        bot.send_message(chat_id=chat_id, text='a' * constants.MAX_MESSAGE_LENGTH)
+        await bot.send_message(chat_id=chat_id, text='a' * constants.MAX_MESSAGE_LENGTH)
 
         with pytest.raises(
             BadRequest,

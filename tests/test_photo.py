@@ -122,14 +122,14 @@ class TestPhoto:
         assert message.caption == TestPhoto.caption.replace('*', '')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
-    def test_send_photo_custom_filename(self, bot, chat_id, photo_file, monkeypatch):
-        def make_assertion(url, data, **kwargs):
+    @pytest.mark.asyncio
+    async def test_send_photo_custom_filename(self, bot, chat_id, photo_file, monkeypatch):
+        async def make_assertion(url, data, **kwargs):
             return data['photo'].filename == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
-        assert bot.send_photo(chat_id, photo_file, filename='custom_filename')
+        assert await bot.send_photo(chat_id, photo_file, filename='custom_filename')
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -205,7 +205,6 @@ class TestPhoto:
         assert message.caption_entities == entities
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_photo_default_parse_mode_1(
@@ -219,7 +218,6 @@ class TestPhoto:
         assert message.caption == test_string
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_photo_default_parse_mode_2(
@@ -234,7 +232,6 @@ class TestPhoto:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_photo_default_parse_mode_3(
@@ -264,7 +261,6 @@ class TestPhoto:
         assert test_flag
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [
@@ -308,7 +304,7 @@ class TestPhoto:
         assert new_file.file_unique_id == photo.file_unique_id
         assert new_file.file_path.startswith('https://') is True
 
-        new_file.download('telegram.jpg')
+        await new_file.download('telegram.jpg')
 
         assert os.path.isfile('telegram.jpg') is True
 
@@ -498,7 +494,7 @@ class TestPhoto:
         assert await check_defaults_handling(photo.get_file, photo.bot)
 
         monkeypatch.setattr(photo.bot, 'get_file', make_assertion)
-        assert photo.get_file()
+        assert await photo.get_file()
 
     def test_equality(self, photo):
         a = PhotoSize(photo.file_id, photo.file_unique_id, self.width, self.height)

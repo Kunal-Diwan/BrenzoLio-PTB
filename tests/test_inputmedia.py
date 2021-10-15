@@ -503,7 +503,6 @@ class TestSendMediaGroup:
             await bot.send_media_group(chat_id, [input_video, input_video])
 
     @flaky(3, 1)  # noqa: F811
-    @pytest.mark.timeout(10)  # noqa: F811
     @pytest.mark.asyncio
     async def test_send_media_group_new_files(
         self,

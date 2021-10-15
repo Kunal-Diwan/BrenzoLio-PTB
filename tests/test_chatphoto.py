@@ -60,12 +60,16 @@ class TestChatPhoto:
     chatphoto_file_url = 'https://python-telegram-bot.org/static/testfiles/telegram.jpg'
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
-    def test_send_all_args(self, bot, super_group_id, chatphoto_file, chat_photo, thumb_file):
-        def func():
-            assert bot.set_chat_photo(super_group_id, chatphoto_file)
+    @pytest.mark.asyncio
+    async def test_send_all_args(
+        self, bot, super_group_id, chatphoto_file, chat_photo, thumb_file
+    ):
+        async def func():
+            assert await bot.set_chat_photo(super_group_id, chatphoto_file)
 
-        expect_bad_request(func, 'Type of file mismatch', 'Telegram did not accept the file.')
+        await expect_bad_request(
+            func, 'Type of file mismatch', 'Telegram did not accept the file.'
+        )
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -76,7 +80,7 @@ class TestChatPhoto:
         assert new_file.file_id == chat_photo.small_file_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download(jpg_file)
+        await new_file.download(jpg_file)
 
         assert jpg_file.is_file()
 
@@ -85,7 +89,7 @@ class TestChatPhoto:
         assert new_file.file_id == chat_photo.big_file_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download(jpg_file)
+        await new_file.download(jpg_file)
 
         assert jpg_file.is_file()
 

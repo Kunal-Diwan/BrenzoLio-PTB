@@ -197,9 +197,9 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_invalid_token_server_response(self, monkeypatch):
         monkeypatch.setattr('telegram.Bot._validate_token', lambda x, y: '')
-        bot = Bot('12')
         with pytest.raises(InvalidToken):
-            await bot.get_me()
+            async with Bot('12') as bot:
+                await bot.get_me()
 
     @pytest.mark.asyncio
     async def test_unknown_kwargs(self, bot, monkeypatch):
@@ -215,7 +215,6 @@ class TestBot:
 
     @flaky(3, 1)
     @pytest.mark.asyncio
-    @pytest.mark.timeout(10)
     async def test_get_me_and_properties(self, bot: Bot):
         get_me_bot = await bot.get_me()
 
@@ -311,7 +310,7 @@ class TestBot:
         # check that tg.Bot does the right thing
         # make_assertion basically checks everything that happens in
         # Bot._insert_defaults and Bot._insert_defaults_for_ilq_results
-        def make_assertion(_, data, timeout=None):
+        async def make_assertion(_, data, timeout=None):
             # Check regular kwargs
             for k, v in data.items():
                 if isinstance(v, DefaultValue):
@@ -357,7 +356,7 @@ class TestBot:
             if isinstance(value.default, DefaultValue)
         ]
         monkeypatch.setattr(raw_bot.request, 'post', make_assertion)
-        method(**build_kwargs(inspect.signature(method), kwargs_need_default))
+        await method(**build_kwargs(inspect.signature(method), kwargs_need_default))
 
     def test_ext_bot_signature(self):
         """
@@ -410,7 +409,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_delete_message(self, bot, chat_id):
         message = await bot.send_message(chat_id, text='will be deleted')
-        asyncio.sleep(2)
+        await asyncio.sleep(2)
 
         assert await bot.delete_message(chat_id=chat_id, message_id=message.message_id) is True
 
@@ -607,7 +606,6 @@ class TestBot:
         assert new_message.poll.is_closed
 
     @flaky(5, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.asyncio
     async def test_send_close_date_default_tz(self, tz_bot, super_group_id):
         question = 'Is this a test?'
@@ -1109,7 +1107,7 @@ class TestBot:
         assert await bot.ban_chat_member(2, 32)
         assert await bot.ban_chat_member(2, 32, until_date=until)
         assert await bot.ban_chat_member(2, 32, until_date=1577887200)
-        assert bot.ban_chat_member(2, 32, revoke_messages=True)
+        assert await bot.ban_chat_member(2, 32, revoke_messages=True)
         monkeypatch.delattr(bot.request, 'post')
 
     @pytest.mark.asyncio
@@ -1795,7 +1793,7 @@ class TestBot:
             )
 
         # Test that we pass the correct params to TG
-        def make_assertion(*args, **_):
+        async def make_assertion(*args, **_):
             data = args[1]
             return (
                 data.get('chat_id') == channel_id
@@ -1814,7 +1812,7 @@ class TestBot:
             )
 
         monkeypatch.setattr(bot, '_post', make_assertion)
-        assert bot.promote_chat_member(
+        assert await bot.promote_chat_member(
             channel_id,
             95205500,
             is_anonymous=1,
@@ -1953,7 +1951,6 @@ class TestBot:
         assert await bot.set_chat_description(channel_id, 'Time: ' + str(time.time()))
 
     @flaky(3, 1)
-    @pytest.mark.timeout(70)
     @pytest.mark.asyncio
     async def test_pin_and_unpin_message(self, bot, super_group_id):
         message1 = await bot.send_message(super_group_id, text="test_pin_message_1")

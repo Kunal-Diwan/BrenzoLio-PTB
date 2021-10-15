@@ -93,14 +93,14 @@ class TestVoice:
         assert message.caption == self.caption.replace('*', '')
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
-    def test_send_voice_custom_filename(self, bot, chat_id, voice_file, monkeypatch):
-        def make_assertion(url, data, **kwargs):
+    @pytest.mark.asyncio
+    async def test_send_voice_custom_filename(self, bot, chat_id, voice_file, monkeypatch):
+        async def make_assertion(url, data, **kwargs):
             return data['voice'].filename == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
-        assert bot.send_voice(chat_id, voice_file, filename='custom_filename')
+        assert await bot.send_voice(chat_id, voice_file, filename='custom_filename')
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -112,7 +112,7 @@ class TestVoice:
         assert new_file.file_unique_id == voice.file_unique_id
         assert new_file.file_path.startswith('https://')
 
-        new_file.download('telegram.ogg')
+        await new_file.download('telegram.ogg')
 
         assert os.path.isfile('telegram.ogg')
 
@@ -163,7 +163,6 @@ class TestVoice:
         assert message.caption_entities == entities
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_voice_default_parse_mode_1(self, default_bot, chat_id, voice):
@@ -175,7 +174,6 @@ class TestVoice:
         assert message.caption == test_string
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_voice_default_parse_mode_2(self, default_bot, chat_id, voice):
@@ -188,7 +186,6 @@ class TestVoice:
         assert message.caption_markdown == escape_markdown(test_markdown_string)
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_send_voice_default_parse_mode_3(self, default_bot, chat_id, voice):
@@ -216,7 +213,6 @@ class TestVoice:
         assert test_flag
 
     @flaky(3, 1)
-    @pytest.mark.timeout(10)
     @pytest.mark.parametrize(
         'default_bot,custom',
         [
@@ -305,7 +301,7 @@ class TestVoice:
         assert await check_defaults_handling(voice.get_file, voice.bot)
 
         monkeypatch.setattr(voice.bot, 'get_file', make_assertion)
-        assert voice.get_file()
+        assert await voice.get_file()
 
     def test_equality(self, voice):
         a = Voice(voice.file_id, voice.file_unique_id, self.duration)

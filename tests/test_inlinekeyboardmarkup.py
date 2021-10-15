@@ -92,8 +92,9 @@ class TestInlineKeyboardMarkup:
         with pytest.raises(ValueError):
             InlineKeyboardMarkup(InlineKeyboardButton('b1', '1'))
 
-    def test_expected_values_empty_switch(self, inline_keyboard_markup, bot, monkeypatch):
-        def test(
+    @pytest.mark.asyncio
+    async def test_expected_values_empty_switch(self, inline_keyboard_markup, bot, monkeypatch):
+        async def test(
             url,
             data,
             reply_to_message_id=None,
@@ -117,7 +118,7 @@ class TestInlineKeyboardMarkup:
         inline_keyboard_markup.inline_keyboard[0][1].switch_inline_query_current_chat = ''
 
         monkeypatch.setattr(bot, '_message', test)
-        bot.send_message(123, 'test', reply_markup=inline_keyboard_markup)
+        await bot.send_message(123, 'test', reply_markup=inline_keyboard_markup)
 
     def test_to_dict(self, inline_keyboard_markup):
         inline_keyboard_markup_dict = inline_keyboard_markup.to_dict()
