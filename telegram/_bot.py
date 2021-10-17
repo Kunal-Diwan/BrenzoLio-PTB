@@ -39,7 +39,6 @@ from typing import (
     Sequence,
     Any,
     Type,
-    Awaitable,
 )
 
 try:
@@ -219,7 +218,7 @@ class Bot(TelegramObject):
 
     async def __aexit__(
         self, exc_type: Type[Exception], exc_val: Exception, exc_tb: TracebackType
-    ) -> Awaitable:
+    ) -> None:
         await self.do_teardown()
 
     def _insert_defaults(  # pylint: disable=no-self-use
@@ -247,9 +246,7 @@ class Bot(TelegramObject):
         for key, val in data.items():
             # 1)
             if isinstance(val, InputMedia):
-                val.parse_mode = DefaultValue.get_value(  # type: ignore[attr-defined]
-                    val.parse_mode  # type: ignore[attr-defined]
-                )
+                val.parse_mode = DefaultValue.get_value(val.parse_mode)
             elif key == 'media' and isinstance(val, list):
                 for media in val:
                     media.parse_mode = DefaultValue.get_value(media.parse_mode)
