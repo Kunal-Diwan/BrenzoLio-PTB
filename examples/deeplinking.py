@@ -135,16 +135,6 @@ def main() -> None:
         CallbackQueryHandler(deep_link_level_3_callback, pattern=KEYBOARD_CALLBACKDATA)
     )
 
-    # Possible with inline keyboard buttons aswell
-    dispatcher.add_handler(
-        CommandHandler("start", deep_linked_level_4, Filters.regex(USING_KEYBOARD))
-    )
-
-    # register callback handler for inline keyboard button
-    dispatcher.add_handler(
-        CallbackQueryHandler(deep_link_level_3_callback, pattern=KEYBOARD_CALLBACKDATA)
-    )
-
     # Make sure the deep-linking handlers occur *before* the normal /start handler.
     dispatcher.add_handler(CommandHandler("start", start))
 

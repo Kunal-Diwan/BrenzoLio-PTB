@@ -73,7 +73,7 @@ Here's how to make a one-off code change.
 
    - Provide static typing with signature annotations. The documentation of `MyPy`_ will be a good start, the cheat sheet is `here`_. We also have some custom type aliases in ``telegram._utils.types``.
 
-   - Document your code. This step is pretty important to us, so it has its own `section`_. The directives should be added to class/method descriptions if their general behaviour changed and to the description of all arguments & attributes that changed.
+   - Document your code. This step is pretty important to us, so it has its own `section`_.
 
    - For consistency, please conform to `Google Python Style Guide`_ and `Google Python Style Docstrings`_.
 

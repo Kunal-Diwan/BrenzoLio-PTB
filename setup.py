@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """The setup and build script for the python-telegram-bot library."""
-
-import codecs
-import os
 import subprocess
 from pathlib import Path
+import sys
 
 from setuptools import setup, find_packages
 

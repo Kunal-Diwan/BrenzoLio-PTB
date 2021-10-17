@@ -51,9 +51,6 @@ class Defaults:
             appearing throughout PTB, i.e. if a timezone naive date(time) object is passed
             somewhere, it will be assumed to be in ``tzinfo``. Must be a timezone provided by the
             ``pytz`` module. Defaults to UTC.
-
-            Note:
-                Will *not* be used for :meth:`telegram.Bot.get_updates`!
         run_async (:obj:`bool`, optional): Default setting for the ``run_async`` parameter of
             handlers and error handlers registered through :meth:`Dispatcher.add_handler` and
             :meth:`Dispatcher.add_error_handler`. Defaults to :obj:`False`.
