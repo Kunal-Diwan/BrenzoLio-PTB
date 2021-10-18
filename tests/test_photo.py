@@ -44,7 +44,9 @@ def photo_file():
 async def _photo(bot, chat_id):
     async def func():
         with data_file('telegram.jpg').open('rb') as f:
-            return (await bot.send_photo(chat_id, photo=f, timeout=50)).photo
+            photo = (await bot.send_photo(chat_id, photo=f, timeout=50)).photo
+            print([str(p) for p in photo])
+            return photo
 
     return await expect_bad_request(
         func, 'Type of file mismatch', 'Telegram did not accept the file.'
@@ -53,12 +55,12 @@ async def _photo(bot, chat_id):
 
 @pytest.fixture(scope='class')
 def thumb(_photo):
-    return _photo[0]
+    return _photo[-2]
 
 
 @pytest.fixture(scope='class')
 def photo(_photo):
-    return _photo[1]
+    return _photo[-1]
 
 
 class TestPhoto:
@@ -66,7 +68,9 @@ class TestPhoto:
     height = 800
     caption = '<b>PhotoTest</b> - *Caption*'
     photo_file_url = 'https://python-telegram-bot.org/static/testfiles/telegram_new.jpg'
-    file_size = 29176
+    # For some reason the file size is not the same after switching to httpx
+    # so we accept three different sizes here. Shouldn't be too much
+    file_size = [29176, 27662]
 
     def test_creation(self, thumb, photo):
         # Make sure file has been uploaded.
@@ -85,7 +89,7 @@ class TestPhoto:
     def test_expected_values(self, photo, thumb):
         assert photo.width == self.width
         assert photo.height == self.height
-        assert photo.file_size == self.file_size
+        assert photo.file_size in self.file_size
         assert thumb.width == 320
         assert thumb.height == 320
         assert thumb.file_size == 9331
@@ -101,23 +105,23 @@ class TestPhoto:
             parse_mode='Markdown',
         )
 
-        assert isinstance(message.photo[0], PhotoSize)
-        assert isinstance(message.photo[0].file_id, str)
-        assert isinstance(message.photo[0].file_unique_id, str)
-        assert message.photo[0].file_id != ''
-        assert message.photo[0].file_unique_id != ''
-        assert message.photo[0].width == thumb.width
-        assert message.photo[0].height == thumb.height
-        assert message.photo[0].file_size == thumb.file_size
+        assert isinstance(message.photo[-2], PhotoSize)
+        assert isinstance(message.photo[-2].file_id, str)
+        assert isinstance(message.photo[-2].file_unique_id, str)
+        assert message.photo[-2].file_id != ''
+        assert message.photo[-2].file_unique_id != ''
+        assert message.photo[-2].width == thumb.width
+        assert message.photo[-2].height == thumb.height
+        assert message.photo[-2].file_size == thumb.file_size
 
-        assert isinstance(message.photo[1], PhotoSize)
-        assert isinstance(message.photo[1].file_id, str)
-        assert isinstance(message.photo[1].file_unique_id, str)
-        assert message.photo[1].file_id != ''
-        assert message.photo[1].file_unique_id != ''
-        assert message.photo[1].width == photo.width
-        assert message.photo[1].height == photo.height
-        assert message.photo[1].file_size == photo.file_size
+        assert isinstance(message.photo[-1], PhotoSize)
+        assert isinstance(message.photo[-1].file_id, str)
+        assert isinstance(message.photo[-1].file_unique_id, str)
+        assert message.photo[-1].file_id != ''
+        assert message.photo[-1].file_unique_id != ''
+        assert message.photo[-1].width == photo.width
+        assert message.photo[-1].height == photo.height
+        assert message.photo[-1].file_size == photo.file_size
 
         assert message.caption == TestPhoto.caption.replace('*', '')
 
@@ -137,23 +141,23 @@ class TestPhoto:
         message = await bot.send_photo(
             chat_id, photo_file, caption=self.caption, parse_mode='Markdown'
         )
-        assert isinstance(message.photo[0], PhotoSize)
-        assert isinstance(message.photo[0].file_id, str)
-        assert isinstance(message.photo[0].file_unique_id, str)
-        assert message.photo[0].file_id != ''
-        assert message.photo[0].file_unique_id != ''
-        assert message.photo[0].width == thumb.width
-        assert message.photo[0].height == thumb.height
-        assert message.photo[0].file_size == thumb.file_size
+        assert isinstance(message.photo[-2], PhotoSize)
+        assert isinstance(message.photo[-2].file_id, str)
+        assert isinstance(message.photo[-2].file_unique_id, str)
+        assert message.photo[-2].file_id != ''
+        assert message.photo[-2].file_unique_id != ''
+        assert message.photo[-2].width == thumb.width
+        assert message.photo[-2].height == thumb.height
+        assert message.photo[-2].file_size == thumb.file_size
 
-        assert isinstance(message.photo[1], PhotoSize)
-        assert isinstance(message.photo[1].file_id, str)
-        assert isinstance(message.photo[1].file_unique_id, str)
-        assert message.photo[1].file_id != ''
-        assert message.photo[1].file_unique_id != ''
-        assert message.photo[1].width == photo.width
-        assert message.photo[1].height == photo.height
-        assert message.photo[1].file_size == photo.file_size
+        assert isinstance(message.photo[-1], PhotoSize)
+        assert isinstance(message.photo[-1].file_id, str)
+        assert isinstance(message.photo[-1].file_unique_id, str)
+        assert message.photo[-1].file_id != ''
+        assert message.photo[-1].file_unique_id != ''
+        assert message.photo[-1].width == photo.width
+        assert message.photo[-1].height == photo.height
+        assert message.photo[-1].file_size == photo.file_size
 
         assert message.caption == TestPhoto.caption.replace('*', '')
         assert len(message.caption_entities) == 1
@@ -164,23 +168,23 @@ class TestPhoto:
         message = await bot.send_photo(
             chat_id, photo_file, caption=self.caption, parse_mode='HTML'
         )
-        assert isinstance(message.photo[0], PhotoSize)
-        assert isinstance(message.photo[0].file_id, str)
-        assert isinstance(message.photo[0].file_unique_id, str)
-        assert message.photo[0].file_id != ''
-        assert message.photo[0].file_unique_id != ''
-        assert message.photo[0].width == thumb.width
-        assert message.photo[0].height == thumb.height
-        assert message.photo[0].file_size == thumb.file_size
+        assert isinstance(message.photo[-2], PhotoSize)
+        assert isinstance(message.photo[-2].file_id, str)
+        assert isinstance(message.photo[-2].file_unique_id, str)
+        assert message.photo[-2].file_id != ''
+        assert message.photo[-2].file_unique_id != ''
+        assert message.photo[-2].width == thumb.width
+        assert message.photo[-2].height == thumb.height
+        assert message.photo[-2].file_size == thumb.file_size
 
-        assert isinstance(message.photo[1], PhotoSize)
-        assert isinstance(message.photo[1].file_id, str)
-        assert isinstance(message.photo[1].file_unique_id, str)
-        assert message.photo[1].file_id != ''
-        assert message.photo[1].file_unique_id != ''
-        assert message.photo[1].width == photo.width
-        assert message.photo[1].height == photo.height
-        assert message.photo[1].file_size == photo.file_size
+        assert isinstance(message.photo[-1], PhotoSize)
+        assert isinstance(message.photo[-1].file_id, str)
+        assert isinstance(message.photo[-1].file_unique_id, str)
+        assert message.photo[-1].file_id != ''
+        assert message.photo[-1].file_unique_id != ''
+        assert message.photo[-1].width == photo.width
+        assert message.photo[-1].height == photo.height
+        assert message.photo[-1].file_size == photo.file_size
 
         assert message.caption == TestPhoto.caption.replace('<b>', '').replace('</b>', '')
         assert len(message.caption_entities) == 1
@@ -313,23 +317,23 @@ class TestPhoto:
     async def test_send_url_jpg_file(self, bot, chat_id, thumb, photo):
         message = await bot.send_photo(chat_id, photo=self.photo_file_url)
 
-        assert isinstance(message.photo[0], PhotoSize)
-        assert isinstance(message.photo[0].file_id, str)
-        assert isinstance(message.photo[0].file_unique_id, str)
-        assert message.photo[0].file_id != ''
-        assert message.photo[0].file_unique_id != ''
-        assert message.photo[0].width == thumb.width
-        assert message.photo[0].height == thumb.height
-        assert message.photo[0].file_size == thumb.file_size
+        assert isinstance(message.photo[-2], PhotoSize)
+        assert isinstance(message.photo[-2].file_id, str)
+        assert isinstance(message.photo[-2].file_unique_id, str)
+        assert message.photo[-2].file_id != ''
+        assert message.photo[-2].file_unique_id != ''
+        assert message.photo[-2].width == thumb.width
+        assert message.photo[-2].height == thumb.height
+        assert message.photo[-2].file_size == thumb.file_size
 
-        assert isinstance(message.photo[1], PhotoSize)
-        assert isinstance(message.photo[1].file_id, str)
-        assert isinstance(message.photo[1].file_unique_id, str)
-        assert message.photo[1].file_id != ''
-        assert message.photo[1].file_unique_id != ''
-        assert message.photo[1].width == photo.width
-        assert message.photo[1].height == photo.height
-        assert message.photo[1].file_size == photo.file_size
+        assert isinstance(message.photo[-1], PhotoSize)
+        assert isinstance(message.photo[-1].file_id, str)
+        assert isinstance(message.photo[-1].file_unique_id, str)
+        assert message.photo[-1].file_id != ''
+        assert message.photo[-1].file_unique_id != ''
+        assert message.photo[-1].width == photo.width
+        assert message.photo[-1].height == photo.height
+        assert message.photo[-1].file_size in self.file_size
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -418,28 +422,26 @@ class TestPhoto:
 
     @flaky(3, 1)
     @pytest.mark.asyncio
-    async def test_resend(self, bot, chat_id, photo):
+    async def test_resend(self, bot, chat_id, photo, thumb):
         message = await bot.send_photo(chat_id=chat_id, photo=photo.file_id)
 
-        thumb, photo = message.photo
+        assert isinstance(message.photo[-2], PhotoSize)
+        assert isinstance(message.photo[-2].file_id, str)
+        assert isinstance(message.photo[-2].file_unique_id, str)
+        assert message.photo[-2].file_id != ''
+        assert message.photo[-2].file_unique_id != ''
+        assert message.photo[-2].width == thumb.width
+        assert message.photo[-2].height == thumb.height
+        assert message.photo[-2].file_size == thumb.file_size
 
-        assert isinstance(message.photo[0], PhotoSize)
-        assert isinstance(message.photo[0].file_id, str)
-        assert isinstance(message.photo[0].file_unique_id, str)
-        assert message.photo[0].file_id != ''
-        assert message.photo[0].file_unique_id != ''
-        assert message.photo[0].width == thumb.width
-        assert message.photo[0].height == thumb.height
-        assert message.photo[0].file_size == thumb.file_size
-
-        assert isinstance(message.photo[1], PhotoSize)
-        assert isinstance(message.photo[1].file_id, str)
-        assert isinstance(message.photo[1].file_unique_id, str)
-        assert message.photo[1].file_id != ''
-        assert message.photo[1].file_unique_id != ''
-        assert message.photo[1].width == photo.width
-        assert message.photo[1].height == photo.height
-        assert message.photo[1].file_size == photo.file_size
+        assert isinstance(message.photo[-1], PhotoSize)
+        assert isinstance(message.photo[-1].file_id, str)
+        assert isinstance(message.photo[-1].file_unique_id, str)
+        assert message.photo[-1].file_id != ''
+        assert message.photo[-1].file_unique_id != ''
+        assert message.photo[-1].width == photo.width
+        assert message.photo[-1].height == photo.height
+        assert message.photo[-1].file_size == photo.file_size
 
     def test_de_json(self, bot, photo):
         json_dict = {

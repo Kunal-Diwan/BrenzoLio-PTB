@@ -41,7 +41,7 @@ def video_file():
 @pytest.fixture(scope='class')
 @pytest.mark.asyncio
 async def video(bot, chat_id):
-    with data_file('telegram_no_standard_header.jpg').open('rb') as f:
+    with data_file('telegram.mp4').open('rb') as f:
         return (await bot.send_video(chat_id, video=f, timeout=50)).video
 
 
