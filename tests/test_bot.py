@@ -90,6 +90,7 @@ class BotSubClass(Bot):
 
 
 @pytest.fixture(scope='class')
+@pytest.mark.asyncio
 async def message(bot, chat_id):
     to_reply_to = await bot.send_message(
         chat_id, 'Text', disable_web_page_preview=True, disable_notification=True
@@ -143,9 +144,11 @@ xfail = pytest.mark.xfail(
 @pytest.fixture(scope='function')
 @pytest.mark.asyncio
 async def inst(request, bot_info, default_bot):
-    async with Bot(bot_info['token']) if request.param == 'bot' else default_bot as _bot:
-        await _bot.do_init()
-        yield _bot
+    if request.param == 'bot':
+        async with Bot(bot_info['token']) as _bot:
+            yield _bot
+    else:
+        yield default_bot
 
 
 class TestBot:
@@ -178,7 +181,8 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_log_decorator(self, bot, caplog):
-        with caplog.at_level(logging.DEBUG):
+        # Second argument makes sure that we ignore logs from e.g. httpx
+        with caplog.at_level(logging.DEBUG, logger='telegram'):
             await bot.get_me()
             assert len(caplog.records) == 3
             assert caplog.records[0].getMessage().startswith('Entering: get_me')
@@ -231,23 +235,20 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_equality(self):
-        a = Bot(FALLBACKS[0]["token"])
-        await a.do_init()
-        b = Bot(FALLBACKS[0]["token"])
-        await b.do_init()
-        c = Bot(FALLBACKS[1]["token"])
-        await c.do_init()
-        d = Update(123456789)
+        async with Bot(FALLBACKS[0]["token"]) as a, Bot(FALLBACKS[0]["token"]) as b, Bot(
+            FALLBACKS[1]["token"]
+        ) as c:
+            d = Update(123456789)
 
-        assert a == b
-        assert hash(a) == hash(b)
-        assert a is not b
+            assert a == b
+            assert hash(a) == hash(b)
+            assert a is not b
 
-        assert a != c
-        assert hash(a) != hash(c)
+            assert a != c
+            assert hash(a) != hash(c)
 
-        assert a != d
-        assert hash(a) != hash(d)
+            assert a != d
+            assert hash(a) != hash(d)
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -303,60 +304,63 @@ class TestBot:
         Finally, there are some tests for Defaults.{parse_mode, quote, allow_sending_without_reply}
         at the appropriate places, as those are the only things we can actually check.
         """
-        # Check that ExtBot does the right thing
-        bot_method = getattr(bot, bot_method_name)
-        assert await check_defaults_handling(bot_method, bot)
+        try:
+            # Check that ExtBot does the right thing
+            bot_method = getattr(bot, bot_method_name)
+            assert await check_defaults_handling(bot_method, bot)
 
-        # check that tg.Bot does the right thing
-        # make_assertion basically checks everything that happens in
-        # Bot._insert_defaults and Bot._insert_defaults_for_ilq_results
-        async def make_assertion(_, data, timeout=None):
-            # Check regular kwargs
-            for k, v in data.items():
-                if isinstance(v, DefaultValue):
-                    pytest.fail(f'Parameter {k} was passed as DefaultValue to request')
-                elif isinstance(v, InputMedia) and isinstance(v.parse_mode, DefaultValue):
-                    pytest.fail(f'Parameter {k} has a DefaultValue parse_mode')
-                # Check InputMedia
-                elif k == 'media' and isinstance(v, list):
-                    if any(isinstance(med.parse_mode, DefaultValue) for med in v):
-                        pytest.fail('One of the media items has a DefaultValue parse_mode')
-            # Check timeout
-            if isinstance(timeout, DefaultValue):
-                pytest.fail('Parameter timeout was passed as DefaultValue to request')
-            # Check inline query results
-            if bot_method_name.lower().replace('_', '') == 'answerinlinequery':
-                for result_dict in data['results']:
-                    if isinstance(result_dict.get('parse_mode'), DefaultValue):
-                        pytest.fail('InlineQueryResult has DefaultValue parse_mode')
-                    imc = result_dict.get('input_message_content')
-                    if imc and isinstance(imc.get('parse_mode'), DefaultValue):
-                        pytest.fail(
-                            'InlineQueryResult is InputMessageContext with DefaultValue parse_mode'
-                        )
-                    if imc and isinstance(imc.get('disable_web_page_preview'), DefaultValue):
-                        pytest.fail(
-                            'InlineQueryResult is InputMessageContext with DefaultValue '
-                            'disable_web_page_preview '
-                        )
-            # Check datetime conversion
-            until_date = data.pop('until_date', None)
-            if until_date and until_date != 946684800:
-                pytest.fail('Naive until_date was not interpreted as UTC')
+            # check that tg.Bot does the right thing
+            # make_assertion basically checks everything that happens in
+            # Bot._insert_defaults and Bot._insert_defaults_for_ilq_results
+            async def make_assertion(_, data, timeout=None):
+                # Check regular kwargs
+                for k, v in data.items():
+                    if isinstance(v, DefaultValue):
+                        pytest.fail(f'Parameter {k} was passed as DefaultValue to request')
+                    elif isinstance(v, InputMedia) and isinstance(v.parse_mode, DefaultValue):
+                        pytest.fail(f'Parameter {k} has a DefaultValue parse_mode')
+                    # Check InputMedia
+                    elif k == 'media' and isinstance(v, list):
+                        if any(isinstance(med.parse_mode, DefaultValue) for med in v):
+                            pytest.fail('One of the media items has a DefaultValue parse_mode')
+                # Check timeout
+                if isinstance(timeout, DefaultValue):
+                    pytest.fail('Parameter timeout was passed as DefaultValue to request')
+                # Check inline query results
+                if bot_method_name.lower().replace('_', '') == 'answerinlinequery':
+                    for result_dict in data['results']:
+                        if isinstance(result_dict.get('parse_mode'), DefaultValue):
+                            pytest.fail('InlineQueryResult has DefaultValue parse_mode')
+                        imc = result_dict.get('input_message_content')
+                        if imc and isinstance(imc.get('parse_mode'), DefaultValue):
+                            pytest.fail(
+                                'InlineQueryResult is InputMessageContext with DefaultValue parse_mode'
+                            )
+                        if imc and isinstance(imc.get('disable_web_page_preview'), DefaultValue):
+                            pytest.fail(
+                                'InlineQueryResult is InputMessageContext with DefaultValue '
+                                'disable_web_page_preview '
+                            )
+                # Check datetime conversion
+                until_date = data.pop('until_date', None)
+                if until_date and until_date != 946684800:
+                    pytest.fail('Naive until_date was not interpreted as UTC')
 
-            if bot_method_name in ['get_file', 'getFile']:
-                # The get_file methods try to check if the result is a local file
-                return File(file_id='result', file_unique_id='result').to_dict()
+                if bot_method_name in ['get_file', 'getFile']:
+                    # The get_file methods try to check if the result is a local file
+                    return File(file_id='result', file_unique_id='result').to_dict()
 
-        method = getattr(raw_bot, bot_method_name)
-        signature = inspect.signature(method)
-        kwargs_need_default = [
-            kwarg
-            for kwarg, value in signature.parameters.items()
-            if isinstance(value.default, DefaultValue)
-        ]
-        monkeypatch.setattr(raw_bot.request, 'post', make_assertion)
-        await method(**build_kwargs(inspect.signature(method), kwargs_need_default))
+            method = getattr(raw_bot, bot_method_name)
+            signature = inspect.signature(method)
+            kwargs_need_default = [
+                kwarg
+                for kwarg, value in signature.parameters.items()
+                if isinstance(value.default, DefaultValue)
+            ]
+            monkeypatch.setattr(raw_bot.request, 'post', make_assertion)
+            await method(**build_kwargs(inspect.signature(method), kwargs_need_default))
+        finally:
+            await bot.get_me()  # because running the mock-get_me messages with bot.bot & friends
 
     def test_ext_bot_signature(self):
         """
@@ -573,7 +577,9 @@ class TestBot:
         assert message_quiz.poll.explanation_entities == explanation_entities
 
     @flaky(3, 1)
-    @pytest.mark.parametrize(['open_period', 'close_date'], [(5, None), (None, True)])
+    @pytest.mark.parametrize(
+        ['open_period', 'close_date'], [(5, None), (None, True)], ids=['open_period', 'close_date']
+    )
     @pytest.mark.asyncio
     async def test_send_open_period(self, bot, super_group_id, open_period, close_date):
         question = 'Is this a test?'
@@ -583,7 +589,7 @@ class TestBot:
         )
 
         if close_date:
-            close_date = dtm.datetime.utcnow() + dtm.timedelta(seconds=5)
+            close_date = dtm.datetime.utcnow() + dtm.timedelta(seconds=5.1)
 
         message = await bot.send_poll(
             chat_id=super_group_id,
@@ -595,7 +601,7 @@ class TestBot:
             open_period=open_period,
             close_date=close_date,
         )
-        await asyncio.sleep(5.1)
+        await asyncio.sleep(5.2)
         new_message = await bot.edit_message_reply_markup(
             chat_id=super_group_id,
             message_id=message.message_id,
@@ -2003,47 +2009,46 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_timeout_propagation_explicit(self, monkeypatch, bot, chat_id):
-
-        from telegram.vendor.ptb_urllib3.urllib3.util.timeout import Timeout
-
-        class OkException(Exception):
+        # Use BaseException that's not a subclass of Exception such that
+        # OkException should not be caught anywhere
+        class OkException(BaseException):
             pass
 
-        TIMEOUT = 500
+        timeout = 42
 
-        async def request_wrapper(*args, **kwargs):
-            obj = kwargs.get('timeout')
-            if isinstance(obj, Timeout) and obj._read == TIMEOUT:
+        async def do_request(*args, **kwargs):
+            obj = kwargs.get('read_timeout')
+            if obj == timeout:
                 raise OkException
 
-            return b'{"ok": true, "result": []}'
+            return 200, b'{"ok": true, "result": []}'
 
-        monkeypatch.setattr('telegram.request.PtbRequestBase._request_wrapper', request_wrapper)
+        monkeypatch.setattr('telegram.request_httpx.PtbHttpx.do_request', do_request)
 
         # Test file uploading
         with pytest.raises(OkException):
-            await bot.send_photo(chat_id, data_file('telegram.jpg').open('rb'), timeout=TIMEOUT)
+            await bot.send_photo(chat_id, data_file('telegram.jpg').open('rb'), timeout=timeout)
 
         # Test JSON submission
         with pytest.raises(OkException):
-            await bot.get_chat_administrators(chat_id, timeout=TIMEOUT)
+            await bot.get_chat_administrators(chat_id, timeout=timeout)
 
     @pytest.mark.asyncio
     async def test_timeout_propagation_implicit(self, monkeypatch, bot, chat_id):
-
-        from telegram.vendor.ptb_urllib3.urllib3.util.timeout import Timeout
-
-        class OkException(Exception):
+        # Use BaseException that's not a subclass of Exception such that
+        # OkException should not be caught anywhere
+        class OkException(BaseException):
             pass
 
-        async def request_wrapper(*args, **kwargs):
-            obj = kwargs.get('timeout')
-            if isinstance(obj, Timeout) and obj._read == 20:
+        async def do_request(*args, **kwargs):
+            obj = kwargs.get('read_timeout')
+            print(obj, type(obj))
+            if obj == 20:
                 raise OkException
 
-            return b'{"ok": true, "result": []}'
+            return 200, b'{"ok": true, "result": []}'
 
-        monkeypatch.setattr('telegram.request.PtbRequestBase._request_wrapper', request_wrapper)
+        monkeypatch.setattr('telegram.request_httpx.PtbHttpx.do_request', do_request)
 
         # Test file uploading
         with pytest.raises(OkException):

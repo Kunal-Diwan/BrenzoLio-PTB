@@ -142,7 +142,6 @@ async def bot(bot_info):
     async with DictExtBot(
         bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(8)
     ) as _bot:
-        await _bot.do_init()
         yield _bot
 
 
@@ -152,7 +151,6 @@ async def raw_bot(bot_info):
     async with DictBot(
         bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(8)
     ) as _bot:
-        await _bot.do_init()
         yield _bot
 
 
@@ -290,9 +288,7 @@ async def make_bot(bot_info, **kwargs):
     """
     _bot = ExtBot(bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(), **kwargs)
     async with _bot:
-        await _bot.do_init()
-
-    return _bot
+        return _bot
 
 
 CMD_PATTERN = re.compile(r'/[\da-z_]{1,32}(?:@\w{1,32})?')
@@ -309,7 +305,6 @@ async def make_message(text, **kwargs):
     bot = kwargs.pop('bot', None)
     if bot is None:
         bot = await make_bot(get_bot())
-        await bot.do_init()
     return Message(
         message_id=1,
         from_user=kwargs.pop('user', User(id=1, first_name='', is_bot=False)),

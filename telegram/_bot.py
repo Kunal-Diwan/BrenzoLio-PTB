@@ -194,9 +194,9 @@ class Bot(TelegramObject):
         logger = logging.getLogger(func.__module__)
 
         @functools.wraps(func)
-        def decorator(*args, **kwargs):  # type: ignore[no-untyped-def]
+        async def decorator(*args, **kwargs):  # type: ignore[no-untyped-def]
             logger.debug('Entering: %s', func.__name__)
-            result = func(*args, **kwargs)
+            result = await func(*args, **kwargs)
             logger.debug(result)
             logger.debug('Exiting: %s', func.__name__)
             return result
