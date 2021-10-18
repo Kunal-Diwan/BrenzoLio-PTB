@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
+from pathlib import Path
 
 import pytest
 from flaky import flaky
@@ -105,6 +106,10 @@ class TestVoice:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, voice):
+        path = Path('telegram.ogg')
+        if path.is_file():
+            path.unlink()
+
         new_file = await bot.get_file(voice.file_id)
 
         assert new_file.file_size == voice.file_size
@@ -114,7 +119,7 @@ class TestVoice:
 
         await new_file.download('telegram.ogg')
 
-        assert os.path.isfile('telegram.ogg')
+        assert path.is_file()
 
     @flaky(3, 1)
     @pytest.mark.asyncio

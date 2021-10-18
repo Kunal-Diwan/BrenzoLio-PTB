@@ -75,6 +75,9 @@ class TestChatPhoto:
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, chat_photo):
         jpg_file = Path('telegram.jpg')
+        if jpg_file.is_file():
+            jpg_file.unlink()
+
         new_file = await bot.get_file(chat_photo.small_file_id)
 
         assert new_file.file_id == chat_photo.small_file_id

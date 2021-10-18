@@ -133,6 +133,10 @@ class TestAudio:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, audio):
+        path = Path('telegram.mp3')
+        if path.is_file():
+            path.unlink()
+
         new_file = await bot.get_file(audio.file_id)
 
         assert new_file.file_size == self.file_size
@@ -142,7 +146,7 @@ class TestAudio:
 
         await new_file.download('telegram.mp3')
 
-        assert Path('telegram.mp3').is_file()
+        assert path.is_file()
 
     @flaky(3, 1)
     @pytest.mark.asyncio

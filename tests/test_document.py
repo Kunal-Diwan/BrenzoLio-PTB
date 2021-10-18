@@ -103,6 +103,10 @@ class TestDocument:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, document):
+        path = Path('telegram.png')
+        if path.is_file():
+            path.unlink()
+
         new_file = await bot.get_file(document.file_id)
 
         assert new_file.file_size == document.file_size
@@ -112,7 +116,7 @@ class TestDocument:
 
         await new_file.download('telegram.png')
 
-        assert Path('telegram.png').is_file()
+        assert path.is_file()
 
     @flaky(3, 1)
     @pytest.mark.asyncio

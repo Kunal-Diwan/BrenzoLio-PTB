@@ -17,6 +17,8 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
 from io import BytesIO
+from pathlib import Path
+
 import pytest
 from flaky import flaky
 
@@ -302,6 +304,10 @@ class TestPhoto:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, photo):
+        path = Path('telegram.jpg')
+        if path.is_file():
+            path.unlink()
+
         new_file = await bot.getFile(photo.file_id)
 
         assert new_file.file_size == photo.file_size
@@ -310,7 +316,7 @@ class TestPhoto:
 
         await new_file.download('telegram.jpg')
 
-        assert os.path.isfile('telegram.jpg') is True
+        assert path.is_file()
 
     @flaky(3, 1)
     @pytest.mark.asyncio

@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
+from pathlib import Path
+
 import pytest
 from flaky import flaky
 
@@ -120,6 +122,10 @@ class TestAnimation:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, animation):
+        path = Path('game.gif')
+        if path.is_file():
+            path.unlink()
+
         new_file = await bot.get_file(animation.file_id)
 
         assert new_file.file_size == self.file_size

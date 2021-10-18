@@ -76,6 +76,7 @@ class PtbHttpx(PtbRequestBase):
         pass
 
     async def stop(self) -> None:
+        print('this is httpx stop')
         await self._client.aclose()
 
     async def do_request(

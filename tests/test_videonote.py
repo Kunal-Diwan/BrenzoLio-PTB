@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 import os
+from pathlib import Path
+
 import pytest
 from flaky import flaky
 
@@ -116,6 +118,10 @@ class TestVideoNote:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_get_and_download(self, bot, video_note):
+        path = Path('telegram2.mp4')
+        if path.is_file():
+            path.unlink()
+
         new_file = await bot.get_file(video_note.file_id)
 
         assert new_file.file_size == self.file_size
@@ -125,7 +131,7 @@ class TestVideoNote:
 
         await new_file.download('telegram2.mp4')
 
-        assert os.path.isfile('telegram2.mp4')
+        assert path.is_file()
 
     @flaky(3, 1)
     @pytest.mark.asyncio

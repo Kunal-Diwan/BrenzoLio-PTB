@@ -22,6 +22,7 @@
 
 import functools
 import logging
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime
 from types import TracebackType
 
@@ -116,7 +117,7 @@ if TYPE_CHECKING:
 RT = TypeVar('RT')
 
 
-class Bot(TelegramObject):
+class Bot(TelegramObject, AbstractAsyncContextManager):
     """This object represents a Telegram Bot.
 
     .. versionadded:: 13.2
@@ -213,7 +214,11 @@ class Bot(TelegramObject):
             await self._request[0].stop()
 
     async def __aenter__(self) -> 'Bot':
-        await self.do_init()
+        try:
+            await self.do_init()
+        except Exception as exc:
+            await self.do_teardown()
+            raise exc
         return self
 
     async def __aexit__(
