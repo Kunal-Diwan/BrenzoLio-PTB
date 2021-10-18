@@ -32,7 +32,7 @@ included = {  # These modules/classes intentionally have __dict__.
 
 
 def test_class_has_slots_and_no_dict():
-    tg_paths = [p for p in iglob("telegram/**/*.py", recursive=True) if 'vendor' not in p]
+    tg_paths = iglob("telegram/**/*.py", recursive=True)
 
     for path in tg_paths:
         # windows uses backslashes:

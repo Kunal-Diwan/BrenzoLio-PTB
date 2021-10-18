@@ -193,7 +193,6 @@ def check_required_param(
 
 argvalues = []
 names = []
-# http = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=certifi.where())
 request = httpx.get('https://core.telegram.org/bots/api')
 soup = BeautifulSoup(request.text, 'html.parser')
 
