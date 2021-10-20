@@ -1,4 +1,22 @@
 #
+#  A library that provides a Python interface to the Telegram Bot API
+#  Copyright (C) 2015-2021
+#  Leandro Toledo de Souza <devs@python-telegram-bot.org>
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Lesser Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser Public License
+#  along with this program.  If not, see [http://www.gnu.org/licenses/].
+
+#
 # A library that provides a Python interface to the Telegram Bot API
 # Copyright (C) 2015-2021
 # Leandro Toledo de Souza <devs@python-telegram-bot.org>
@@ -17,17 +35,17 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains methods to make POST and GET requests using the httpx library."""
 import logging
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 import httpx
 
 from telegram._utils.types import JSONDict
 from telegram.error import TimedOut, NetworkError
-from telegram.request import PtbRequestBase
+from telegram.request import BaseRequest
 
 
-class PtbHttpx(PtbRequestBase):
-    """Implementation of ``PtbRequestBase`` abstraction class using ``httpx`` async HTTP client.
+class HTTPXRequest(BaseRequest):
+    """Implementation of ``BaseRequest`` abstraction class using ``httpx`` async HTTP client.
 
     Args:
         con_pool_size (int): Number of connections to keep in the connection pool. (default: 1)
@@ -47,7 +65,7 @@ class PtbHttpx(PtbRequestBase):
 
     """
 
-    __slots__ = ('_log', '_client')
+    __slots__ = ('_log', '_client', '_con_pool_size')
 
     def __init__(
         self,
@@ -64,6 +82,7 @@ class PtbHttpx(PtbRequestBase):
             write=write_timeout,
             pool=pool_timeout,
         )
+        self._con_pool_size = con_pool_size
         limits = httpx.Limits(
             max_connections=con_pool_size, max_keepalive_connections=con_pool_size
         )
@@ -71,6 +90,10 @@ class PtbHttpx(PtbRequestBase):
         self._log = logging.getLogger(__name__)
         # TODO p0: Test client with proxy!
         self._client = httpx.AsyncClient(timeout=timeout, proxies=proxy_url, limits=limits)
+
+    @property
+    def con_pool_size(self) -> int:
+        return self._con_pool_size
 
     async def do_init(self) -> None:
         pass
@@ -83,8 +106,8 @@ class PtbHttpx(PtbRequestBase):
         self,
         method: str,
         url: str,
-        data: JSONDict,
-        files: Dict[str, Tuple[str, bytes, str]],
+        data: Optional[JSONDict],
+        files: Optional[Dict[str, Tuple[str, bytes, str]]],
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
@@ -115,7 +138,12 @@ class PtbHttpx(PtbRequestBase):
 
         try:
             res = await self._client.request(
-                method, url, headers=headers, timeout=timeout, **kwargs
+                # TODO: check if we can remove the type: ignore - also depending on above comment
+                method,
+                url,
+                headers=headers,
+                timeout=timeout,
+                **kwargs,  # type: ignore [arg-type]
             )
         except httpx.TimeoutException as err:
             raise TimedOut() from err

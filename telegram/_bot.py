@@ -96,12 +96,12 @@ from telegram import (
 )
 from telegram.constants import MAX_INLINE_QUERY_RESULTS
 from telegram.error import InvalidToken, TelegramError
-from telegram.request import PtbRequestBase
+from telegram.request import BaseRequest
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue, DEFAULT_20
 from telegram._utils.datetime import to_timestamp
 from telegram._utils.files import is_local_file, parse_file_input
 from telegram._utils.types import FileInput, JSONDict, ODVInput, DVInput
-from telegram.request_httpx import PtbHttpx
+from telegram.request import HTTPXRequest
 
 if TYPE_CHECKING:
     from telegram import (
@@ -164,7 +164,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         token: str,
         base_url: str = 'https://api.telegram.org/bot',
         base_file_url: str = 'https://api.telegram.org/file/bot',
-        request: Union[PtbRequestBase, Type[PtbRequestBase]] = PtbHttpx,
+        request: Union[BaseRequest, Type[BaseRequest]] = HTTPXRequest,
         private_key: bytes = None,
         private_key_password: bytes = None,
     ):
@@ -173,8 +173,8 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self.base_url = base_url + self.token
         self.base_file_url = base_file_url + self.token
         self._bot: Optional[User] = None
-        self._request: Tuple[PtbRequestBase, bool] = (
-            (request, False) if isinstance(request, PtbRequestBase) else (request(), True)
+        self._request: Tuple[BaseRequest, bool] = (
+            (request, False) if isinstance(request, BaseRequest) else (request(), True)
         )
         self.private_key = None
         self.logger = logging.getLogger(__name__)
@@ -222,7 +222,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return self
 
     async def __aexit__(
-        self, exc_type: Type[Exception], exc_val: Exception, exc_tb: TracebackType
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
     ) -> None:
         await self.do_teardown()
 
@@ -331,7 +334,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return Message.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     @property
-    def request(self) -> PtbRequestBase:  # skip-cq: PY-D0003
+    def request(self) -> BaseRequest:  # skip-cq: PY-D0003
         return self._request[0]
 
     @staticmethod
@@ -2264,9 +2267,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if result.get('file_path') and not is_local_file(  # type: ignore[union-attr]
             result['file_path']  # type: ignore[index]
         ):
-            result['file_path'] = '{}/{}'.format(  # type: ignore[index]
-                self.base_file_url, result['file_path']  # type: ignore[index]
-            )
+            result[
+                'file_path'
+            ] = f"{self.base_file_url}/{result['file_path']}"  # type: ignore[index]
 
         return File.de_json(result, self)  # type: ignore[return-value, arg-type]
 

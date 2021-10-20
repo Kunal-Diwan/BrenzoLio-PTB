@@ -334,7 +334,8 @@ class TestBot:
                         imc = result_dict.get('input_message_content')
                         if imc and isinstance(imc.get('parse_mode'), DefaultValue):
                             pytest.fail(
-                                'InlineQueryResult is InputMessageContext with DefaultValue parse_mode'
+                                'InlineQueryResult is InputMessageContext with DefaultValue '
+                                'parse_mode '
                             )
                         if imc and isinstance(imc.get('disable_web_page_preview'), DefaultValue):
                             pytest.fail(
@@ -2023,7 +2024,7 @@ class TestBot:
 
             return 200, b'{"ok": true, "result": []}'
 
-        monkeypatch.setattr('telegram.request_httpx.PtbHttpx.do_request', do_request)
+        monkeypatch.setattr('telegram.request_httpx.HTTPXRequest.do_request', do_request)
 
         # Test file uploading
         with pytest.raises(OkException):
@@ -2048,7 +2049,7 @@ class TestBot:
 
             return 200, b'{"ok": true, "result": []}'
 
-        monkeypatch.setattr('telegram.request_httpx.PtbHttpx.do_request', do_request)
+        monkeypatch.setattr('telegram.request_httpx.HTTPXRequest.do_request', do_request)
 
         # Test file uploading
         with pytest.raises(OkException):

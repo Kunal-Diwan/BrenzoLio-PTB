@@ -21,6 +21,7 @@
 # flake8: noqa: E501
 # pylint: disable=line-too-long
 """This module contains the Builder classes for the telegram.ext module."""
+import logging
 from pathlib import Path
 from queue import Queue
 from threading import Event
@@ -42,9 +43,9 @@ from telegram._utils.types import ODVInput, DVInput, FilePathInput
 from telegram._utils.warnings import warn
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue, DEFAULT_FALSE
 from telegram.ext import Dispatcher, JobQueue, Updater, ExtBot, ContextTypes, CallbackContext
-from telegram.request_httpx import PtbHttpx
+from telegram.request import HTTPXRequest
 from telegram.ext._utils.types import CCT, UD, CD, BD, BT, JQ, PT
-from telegram.request import PtbRequestBase
+from telegram.request import BaseRequest
 
 if TYPE_CHECKING:
     from telegram.ext import (
@@ -159,6 +160,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         '_dispatcher_kwargs',
         '_updater_class',
         '_updater_kwargs',
+        '_logger',
     )
 
     def __init__(self: 'InitBaseBuilder'):
@@ -166,7 +168,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         self._base_url: DVInput[str] = DefaultValue('https://api.telegram.org/bot')
         self._base_file_url: DVInput[str] = DefaultValue('https://api.telegram.org/file/bot')
         self._request_kwargs: DVInput[Dict[str, Any]] = DefaultValue({})
-        self._request: ODVInput['PtbRequestBase'] = DEFAULT_NONE
+        self._request: ODVInput['BaseRequest'] = DEFAULT_NONE
         self._private_key: ODVInput[bytes] = DEFAULT_NONE
         self._private_key_password: ODVInput[bytes] = DEFAULT_NONE
         self._defaults: ODVInput['Defaults'] = DEFAULT_NONE
@@ -184,6 +186,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         self._dispatcher_kwargs: Dict[str, object] = {}
         self._updater_class: Type[Updater] = Updater
         self._updater_kwargs: Dict[str, object] = {}
+        self._logger = logging.getLogger(__name__)
 
     @staticmethod
     def _get_connection_pool_size(workers: DVInput[int]) -> int:
@@ -200,7 +203,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         if isinstance(self._token, DefaultValue):
             raise RuntimeError('No bot token was set.')
 
-        if not isinstance(self._request, DefaultValue):
+        if not isinstance(self._request, DefaultValue) and self._request is not None:
             request = self._request
         else:
             request_kwargs = DefaultValue.get_value(self._request_kwargs)
@@ -211,7 +214,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
                 request_kwargs[  # pylint: disable=unsupported-assignment-operation
                     'con_pool_size'
                 ] = self._get_connection_pool_size(self._workers)
-            request = PtbHttpx(**request_kwargs)  # pylint: disable=not-a-mapping
+            request = HTTPXRequest(**request_kwargs)  # pylint: disable=not-a-mapping
 
         return ExtBot(
             token=self._token,
@@ -248,12 +251,22 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
             job_queue.set_dispatcher(dispatcher)
 
         con_pool_size = self._get_connection_pool_size(self._workers)
-        actual_size = dispatcher.bot.request.con_pool_size
-        if actual_size < con_pool_size:
-            warn(
-                f'The Connection pool of Request object is smaller ({actual_size}) than the '
-                f'recommended value of {con_pool_size}.',
-                stacklevel=stack_level,
+
+        try:
+            actual_size = dispatcher.bot.request.con_pool_size
+
+            if actual_size < con_pool_size:
+                warn(
+                    f'The Connection pool of Request object is smaller ({actual_size}) than the '
+                    f'recommended value of {con_pool_size}.',
+                    stacklevel=stack_level,
+                )
+        except NotImplementedError:
+            # In case the request class doesn't implement the con_pool_size property
+            self._logger.warning(
+                'Cannot determine the connection pool size of the Request object. The '
+                'recommended value is %s.',
+                con_pool_size,
             )
 
         return dispatcher
@@ -340,7 +353,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         self._request_kwargs = request_kwargs
         return self
 
-    def _set_request(self: BuilderType, request: PtbRequestBase) -> BuilderType:
+    def _set_request(self: BuilderType, request: BaseRequest) -> BuilderType:
         if not isinstance(self._request_kwargs, DefaultValue):
             raise RuntimeError(_TWO_ARGS_REQ.format('request', 'request_kwargs'))
         if self._bot is not DEFAULT_NONE:
@@ -605,7 +618,7 @@ class DispatcherBuilder(_BaseBuilder[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         """
         return self._set_request_kwargs(request_kwargs)
 
-    def request(self: BuilderType, request: PtbRequestBase) -> BuilderType:
+    def request(self: BuilderType, request: BaseRequest) -> BuilderType:
         """Sets a :class:`telegram.utils.Request` object to be used for
         :attr:`telegram.ext.Dispatcher.bot`.
 
@@ -963,7 +976,7 @@ class UpdaterBuilder(_BaseBuilder[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         """
         return self._set_request_kwargs(request_kwargs)
 
-    def request(self: BuilderType, request: PtbRequestBase) -> BuilderType:
+    def request(self: BuilderType, request: BaseRequest) -> BuilderType:
         """Sets a :class:`telegram.utils.Request` object to be used for
         :attr:`telegram.ext.Updater.bot`.
 

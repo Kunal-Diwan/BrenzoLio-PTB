@@ -20,7 +20,7 @@
 import abc
 from pathlib import Path
 from types import TracebackType
-from typing import Union, Optional, Tuple, Dict, Awaitable, Type
+from typing import Union, Optional, Tuple, Dict, Type
 
 try:
     import ujson as json
@@ -30,7 +30,7 @@ except ImportError:
 from telegram._version import __version__ as ptb_ver
 
 # pylint: disable=ungrouped-imports
-from telegram import InputFile, InputMedia
+from telegram import InputFile
 from telegram.error import (
     TelegramError,
     BadRequest,
@@ -44,20 +44,25 @@ from telegram.error import (
 from telegram._utils.types import JSONDict, FilePathInput
 
 
-class PtbRequestBase(abc.ABC):
+class BaseRequest(abc.ABC):
     """Abstract base class for python-telegram-bot which provides simple means to work with
     different async HTTP libraries.
 
     """
 
-    __slots__ = ('_connect_timeout', '_con_pool_size', '_con_pool')
+    __slots__ = ()
 
     user_agent = (
         f'Python Telegram Bot {ptb_ver}'
         f' (https://github.com/python-telegram-bot/python-telegram-bot)'
     )
 
-    async def __aenter__(self) -> 'PtbRequestBase':
+    @property
+    @abc.abstractmethod
+    def con_pool_size(self) -> int:
+        raise NotImplementedError
+
+    async def __aenter__(self) -> 'BaseRequest':
         await self.do_init()
         return self
 
@@ -96,14 +101,15 @@ class PtbRequestBase(abc.ABC):
         # Convert data into a JSON serializable object which we can send to telegram servers.
         # TODO p3: We should implement a proper Serializer instead of all this memcopy &
         #          manipulations.
+        # TODO: See if we can remove some of the type: ignores
         # pylint: disable=too-many-nested-blocks
-        for key, val in data.copy().items():
+        for key, val in data.copy().items():  # type: ignore
             if isinstance(val, InputFile):
                 files[key] = val.field_tuple
-                del data[key]
+                del data[key]  # type: ignore
             elif isinstance(val, (float, int)):
                 # TODO p3: Is this really necessary? Seems like an ancient relic.
-                data[key] = str(val)
+                data[key] = str(val)  # type: ignore
             elif key == 'media':
                 # List of media
                 if isinstance(val, list):
@@ -119,7 +125,7 @@ class PtbRequestBase(abc.ABC):
                             if "thumb" in media_dict:
                                 files[med.thumb.attach] = med.thumb.field_tuple
                                 # med.thumb = None
-                    data[key] = json.dumps(media)
+                    data[key] = json.dumps(media)  # type: ignore
                 # Single media
                 else:
                     # Attach and set val to attached name
@@ -130,11 +136,11 @@ class PtbRequestBase(abc.ABC):
                         # if the file has a thumb, we also need to attach it to the data
                         if "thumb" in media_dict:
                             files[val.thumb.attach] = val.thumb.field_tuple
-                    data[key] = json.dumps(media_dict)
+                    data[key] = json.dumps(media_dict)  # type: ignore
             elif isinstance(val, list):
                 # In case we're sending files, we need to json-dump lists manually
                 # As we can't know if that's the case, we just json-dump here
-                data[key] = json.dumps(val)
+                data[key] = json.dumps(val)  # type: ignore
 
         result = await self._request_wrapper(
             method='POST', url=url, data=data, files=files, read_timeout=timeout
@@ -273,8 +279,8 @@ class PtbRequestBase(abc.ABC):
         self,
         method: str,
         url: str,
-        data: JSONDict,
-        files: Dict[str, Tuple[str, bytes, str]],
+        data: Optional[JSONDict],
+        files: Optional[Dict[str, Tuple[str, bytes, str]]],
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:

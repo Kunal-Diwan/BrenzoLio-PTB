@@ -65,7 +65,7 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TimedOut, RetryAfter
 from telegram._utils.defaultvalue import DefaultValue, DEFAULT_NONE
-from telegram.request_httpx import PtbHttpx
+from telegram.request import HTTPXRequest
 from tests.bots import get_bot
 
 
@@ -116,7 +116,7 @@ def bot_info():
 # Below classes are used to monkeypatch attributes since parent classes don't have __dict__
 
 
-class TestHttpxRequest(PtbHttpx):
+class TestHttpxRequest(HTTPXRequest):
     async def _request_wrapper(
         self,
         method: str,

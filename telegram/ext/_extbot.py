@@ -53,8 +53,8 @@ from telegram._utils.types import JSONDict, ODVInput, DVInput
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue
 from telegram._utils.datetime import to_timestamp
 from telegram.ext._callbackdatacache import CallbackDataCache
-from telegram.request import PtbRequestBase
-from telegram.request_httpx import PtbHttpx
+from telegram.request import BaseRequest
+from telegram.request import HTTPXRequest
 
 if TYPE_CHECKING:
     from telegram import InlineQueryResult, MessageEntity
@@ -98,7 +98,7 @@ class ExtBot(Bot):
         token: str,
         base_url: str = 'https://api.telegram.org/bot',
         base_file_url: str = 'https://api.telegram.org/file/bot',
-        request: Union[PtbRequestBase, Type[PtbRequestBase]] = PtbHttpx,
+        request: Union[BaseRequest, Type[BaseRequest]] = HTTPXRequest,
         private_key: bytes = None,
         private_key_password: bytes = None,
         defaults: 'Defaults' = None,
