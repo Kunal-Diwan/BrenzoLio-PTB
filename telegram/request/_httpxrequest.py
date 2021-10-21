@@ -35,11 +35,11 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains methods to make POST and GET requests using the httpx library."""
 import logging
-from typing import Tuple, Dict, Optional
+from typing import Tuple, Optional, Union, Dict
 
 import httpx
 
-from telegram._utils.types import JSONDict
+from telegram._utils.types import UploadFileDict
 from telegram.error import TimedOut, NetworkError
 from telegram.request import BaseRequest
 
@@ -99,15 +99,14 @@ class HTTPXRequest(BaseRequest):
         pass
 
     async def stop(self) -> None:
-        print('this is httpx stop')
         await self._client.aclose()
 
     async def do_request(
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
-        files: Optional[Dict[str, Tuple[str, bytes, str]]],
+        json_data: Optional[str],
+        files: Optional[UploadFileDict],
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
@@ -125,16 +124,12 @@ class HTTPXRequest(BaseRequest):
 
         headers = {'User-Agent': self.user_agent}
 
-        kwargs = {}
+        kwargs: Dict[str, Union[str, UploadFileDict]] = {}
         if files:
-            kwargs['data'] = data
             kwargs['files'] = files
             # kwargs['files'] = {f'upload{i}': x for i, x in enumerate(files)}
-        else:
-            # TODO p0: Use optional ujson to encode here. However, it's wrong because it breaks
-            #          the clean layers we use between Base interface and the implementations. It
-            #          would be for the best to pass clear, well defined objects.
-            kwargs['json'] = data
+        if json_data:
+            kwargs['json'] = json_data
 
         try:
             res = await self._client.request(
@@ -143,7 +138,7 @@ class HTTPXRequest(BaseRequest):
                 url,
                 headers=headers,
                 timeout=timeout,
-                **kwargs,  # type: ignore [arg-type]
+                **kwargs,  # type: ignore[arg-type]
             )
         except httpx.TimeoutException as err:
             raise TimedOut() from err

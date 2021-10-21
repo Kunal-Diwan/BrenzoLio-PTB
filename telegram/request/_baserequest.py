@@ -20,7 +20,7 @@
 import abc
 from pathlib import Path
 from types import TracebackType
-from typing import Union, Optional, Tuple, Dict, Type
+from typing import Union, Optional, Tuple, Type
 
 try:
     import ujson as json
@@ -30,7 +30,6 @@ except ImportError:
 from telegram._version import __version__ as ptb_ver
 
 # pylint: disable=ungrouped-imports
-from telegram import InputFile
 from telegram.error import (
     TelegramError,
     BadRequest,
@@ -41,7 +40,7 @@ from telegram.error import (
     RetryAfter,
     Unauthorized,
 )
-from telegram._utils.types import JSONDict, FilePathInput
+from telegram._utils.types import JSONDict, FilePathInput, UploadFileDict
 
 
 class BaseRequest(abc.ABC):
@@ -80,13 +79,19 @@ class BaseRequest(abc.ABC):
         """Stop & clear resources used by this class."""
 
     async def post(
-        self, url: str, data: Optional[JSONDict], timeout: float = None
+        self,
+        url: str,
+        json_data: Optional[str],
+        files: Optional[UploadFileDict],
+        timeout: float = None,
     ) -> Union[JSONDict, bool]:
         """Request an URL.
 
         Args:
             url (:obj:`str`): The web location we want to retrieve.
-            data (Dict[:obj:`str`, :obj:`str` | :obj:`int`], optional): A dict of key/value pairs.
+            json_data (:obj:`str`, optional): The JSON data.
+            files (Dict[:obj:`str`, Tuple[:obj:`str`, :obj:`bytes`, :obj:`str`], optional):
+                Files to be attached to the request.
             timeout (:obj:`int` | :obj:`float`, optional): If this value is specified, use it as
                 the read timeout from the server (instead of the one specified during creation of
                 the connection pool).
@@ -95,55 +100,8 @@ class BaseRequest(abc.ABC):
           A JSON object.
 
         """
-        # Optional files to upload in multi-part form.
-        files = {}
-
-        # Convert data into a JSON serializable object which we can send to telegram servers.
-        # TODO p3: We should implement a proper Serializer instead of all this memcopy &
-        #          manipulations.
-        # TODO: See if we can remove some of the type: ignores
-        # pylint: disable=too-many-nested-blocks
-        for key, val in data.copy().items():  # type: ignore
-            if isinstance(val, InputFile):
-                files[key] = val.field_tuple
-                del data[key]  # type: ignore
-            elif isinstance(val, (float, int)):
-                # TODO p3: Is this really necessary? Seems like an ancient relic.
-                data[key] = str(val)  # type: ignore
-            elif key == 'media':
-                # List of media
-                if isinstance(val, list):
-                    # Attach and set val to attached name for all
-                    media = []
-                    for med in val:
-                        media_dict = med.to_dict()
-                        media.append(media_dict)
-                        if isinstance(med.media, InputFile):
-                            files[med.media.attach] = med.media.field_tuple
-                            # med.media = None
-                            # if the file has a thumb, we also need to attach it to the data
-                            if "thumb" in media_dict:
-                                files[med.thumb.attach] = med.thumb.field_tuple
-                                # med.thumb = None
-                    data[key] = json.dumps(media)  # type: ignore
-                # Single media
-                else:
-                    # Attach and set val to attached name
-                    media_dict = val.to_dict()
-                    if isinstance(val.media, InputFile):
-                        files[val.media.attach] = val.media.field_tuple
-
-                        # if the file has a thumb, we also need to attach it to the data
-                        if "thumb" in media_dict:
-                            files[val.thumb.attach] = val.thumb.field_tuple
-                    data[key] = json.dumps(media_dict)  # type: ignore
-            elif isinstance(val, list):
-                # In case we're sending files, we need to json-dump lists manually
-                # As we can't know if that's the case, we just json-dump here
-                data[key] = json.dumps(val)  # type: ignore
-
         result = await self._request_wrapper(
-            method='POST', url=url, data=data, files=files, read_timeout=timeout
+            method='POST', url=url, json_data=json_data, files=files, read_timeout=timeout
         )
         return self._parse(result)
 
@@ -185,8 +143,8 @@ class BaseRequest(abc.ABC):
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
-        files: Dict[str, Tuple[str, bytes, str]],
+        json_data: Optional[str],
+        files: Optional[UploadFileDict],
         read_timeout: float = None,
     ) -> bytes:
         """Wraps the real implementation request method.
@@ -198,7 +156,7 @@ class BaseRequest(abc.ABC):
         Args:
             method: HTTP method (i.e. 'POST', 'GET', etc.).
             url: The request's URL.
-            data: Data to send over as the request's payload.
+            json_data: Data to send over as the request's payload.
             files: Files to upload as multi-form. Key is the form field name. Value is the file to
                    upload (filename, file-content, content-type).
             read_timeout: Timeout for waiting to server's response.
@@ -212,7 +170,7 @@ class BaseRequest(abc.ABC):
         """
         try:
             code, payload = await self.do_request(
-                method, url, data, files, read_timeout=read_timeout
+                method, url, json_data, files, read_timeout=read_timeout
             )
         except TelegramError:
             raise
@@ -259,8 +217,8 @@ class BaseRequest(abc.ABC):
         except ValueError as exc:
             raise TelegramError('Invalid server response') from exc
 
-        if not data.get('ok'):  # pragma: no cover
-            description = data.get('description')
+        if not data.get('ok'):
+            # see https://core.telegram.org/bots/api#responseparameters
             parameters = data.get('parameters')
             if parameters:
                 migrate_to_chat_id = parameters.get('migrate_to_chat_id')
@@ -269,6 +227,8 @@ class BaseRequest(abc.ABC):
                 retry_after = parameters.get('retry_after')
                 if retry_after:
                     raise RetryAfter(retry_after)
+
+            description = data.get('description')
             if description:
                 return description
 
@@ -279,8 +239,8 @@ class BaseRequest(abc.ABC):
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
-        files: Optional[Dict[str, Tuple[str, bytes, str]]],
+        json_data: Optional[str],
+        files: Optional[UploadFileDict],
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
@@ -289,7 +249,7 @@ class BaseRequest(abc.ABC):
         Args:
             method: HTTP method (i.e. 'POST', 'GET', etc.).
             url: The request's URL.
-            data: Data to send over as the request's payload.
+            json_data: Data to send over as the request's payload.
             files: Files to upload as multi-form. Key is the form field name. Value is the file to
                    upload (filename, file-content, content-type).
             read_timeout: Timeout for waiting to server's response.

@@ -312,9 +312,9 @@ class TestBot:
             # check that tg.Bot does the right thing
             # make_assertion basically checks everything that happens in
             # Bot._insert_defaults and Bot._insert_defaults_for_ilq_results
-            async def make_assertion(_, data, timeout=None):
+            async def make_assertion(_, json_data, timeout=None):
                 # Check regular kwargs
-                for k, v in data.items():
+                for k, v in json_data.items():
                     if isinstance(v, DefaultValue):
                         pytest.fail(f'Parameter {k} was passed as DefaultValue to request')
                     elif isinstance(v, InputMedia) and isinstance(v.parse_mode, DefaultValue):
@@ -328,7 +328,7 @@ class TestBot:
                     pytest.fail('Parameter timeout was passed as DefaultValue to request')
                 # Check inline query results
                 if bot_method_name.lower().replace('_', '') == 'answerinlinequery':
-                    for result_dict in data['results']:
+                    for result_dict in json_data['results']:
                         if isinstance(result_dict.get('parse_mode'), DefaultValue):
                             pytest.fail('InlineQueryResult has DefaultValue parse_mode')
                         imc = result_dict.get('input_message_content')
@@ -343,7 +343,7 @@ class TestBot:
                                 'disable_web_page_preview '
                             )
                 # Check datetime conversion
-                until_date = data.pop('until_date', None)
+                until_date = json_data.pop('until_date', None)
                 if until_date and until_date != 946684800:
                     pytest.fail('Naive until_date was not interpreted as UTC')
 
@@ -2024,7 +2024,7 @@ class TestBot:
 
             return 200, b'{"ok": true, "result": []}'
 
-        monkeypatch.setattr('telegram.request_httpx.HTTPXRequest.do_request', do_request)
+        monkeypatch.setattr('telegram.request.HTTPXRequest.do_request', do_request)
 
         # Test file uploading
         with pytest.raises(OkException):
@@ -2049,7 +2049,7 @@ class TestBot:
 
             return 200, b'{"ok": true, "result": []}'
 
-        monkeypatch.setattr('telegram.request_httpx.HTTPXRequest.do_request', do_request)
+        monkeypatch.setattr('telegram.request.HTTPXRequest.do_request', do_request)
 
         # Test file uploading
         with pytest.raises(OkException):

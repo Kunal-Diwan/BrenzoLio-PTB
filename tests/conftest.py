@@ -121,12 +121,12 @@ class TestHttpxRequest(HTTPXRequest):
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
+        json_data: Optional[JSONDict],
         files: Dict[str, Tuple[str, bytes, str]],
         read_timeout: float = None,
     ) -> bytes:
         try:
-            return await super()._request_wrapper(method, url, data, files, read_timeout)
+            return await super()._request_wrapper(method, url, json_data, files, read_timeout)
         except RetryAfter as e:
             pytest.xfail(f'Not waiting for flood control: {e}')
         except TimedOut as e:
