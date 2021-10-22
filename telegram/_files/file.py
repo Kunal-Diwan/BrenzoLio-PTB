@@ -42,7 +42,8 @@ class File(TelegramObject):
     considered equal, if their :attr:`file_unique_id` is equal.
 
     Note:
-        * Maximum file size to download is 20 MB.
+        * Maximum file size to download is
+            :tg-const:`telegram.constants.FileSizeLimit.FILESIZE_DOWNLOAD`.
         * If you obtain an instance of this class from :attr:`telegram.PassportFile.get_file`,
           then it will automatically be decrypted as it downloads when you call :attr:`download()`.
 
@@ -68,7 +69,6 @@ class File(TelegramObject):
     """
 
     __slots__ = (
-        'bot',
         'file_id',
         'file_size',
         'file_unique_id',
@@ -91,7 +91,7 @@ class File(TelegramObject):
         # Optionals
         self.file_size = file_size
         self.file_path = file_path
-        self.bot = bot
+        self.set_bot(bot)
         self._credentials: Optional['FileCredentials'] = None
 
         self._id_attrs = (self.file_unique_id,)
@@ -113,8 +113,10 @@ class File(TelegramObject):
               local mode), this method will just return the path.
 
         .. versionchanged:: 14.0
+
             * ``custom_path`` parameter now also accepts :obj:`pathlib.Path` as argument.
-            * Returns :obj:`pathlib.Path` object in cases where previously returned `str` object.
+            * Returns :obj:`pathlib.Path` object in cases where previously a :obj:`str` was
+              returned.
 
         Args:
             custom_path (:obj:`pathlib.Path` | :obj:`str`, optional): Custom path.
@@ -126,8 +128,8 @@ class File(TelegramObject):
 
         Returns:
             :obj:`pathlib.Path` | :obj:`io.BufferedWriter`: The same object as :attr:`out` if
-                specified.
-            Otherwise, returns the filename downloaded to or the file path of the local file.
+                specified. Otherwise, returns the filename downloaded to or the file path of the
+                local file.
 
         Raises:
             ValueError: If both :attr:`custom_path` and :attr:`out` are passed.
@@ -144,7 +146,7 @@ class File(TelegramObject):
             if local_file:
                 buf = path.read_bytes()
             else:
-                buf = await self.bot.request.retrieve(url)
+                buf = await self.get_bot().request.retrieve(url)
                 if self._credentials:
                     buf = decrypt(
                         b64decode(self._credentials.secret), b64decode(self._credentials.hash), buf
@@ -165,7 +167,7 @@ class File(TelegramObject):
         else:
             filename = Path.cwd() / self.file_id
 
-        buf = await self.bot.request.retrieve(url, timeout=timeout)
+        buf = await self.get_bot().request.retrieve(url, timeout=timeout)
         if self._credentials:
             buf = decrypt(
                 b64decode(self._credentials.secret), b64decode(self._credentials.hash), buf
@@ -198,7 +200,7 @@ class File(TelegramObject):
         if is_local_file(self.file_path):
             buf.extend(Path(self.file_path).read_bytes())
         else:
-            buf.extend(await self.bot.request.retrieve(self._get_encoded_url()))
+            buf.extend(await self.get_bot().request.retrieve(self._get_encoded_url()))
         return buf
 
     def set_credentials(self, credentials: 'FileCredentials') -> None:

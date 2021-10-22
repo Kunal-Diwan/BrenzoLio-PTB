@@ -21,7 +21,7 @@
 import datetime
 import sys
 from html import escape
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, ClassVar, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, Tuple
 
 from telegram import (
     Animation,
@@ -35,7 +35,6 @@ from telegram import (
     Invoice,
     Location,
     MessageEntity,
-    ParseMode,
     PassportData,
     PhotoSize,
     Poll,
@@ -55,9 +54,10 @@ from telegram import (
     MessageAutoDeleteTimerChanged,
     VoiceChatScheduled,
 )
+from telegram.constants import ParseMode, MessageAttachmentType
 from telegram.helpers import escape_markdown
 from telegram._utils.datetime import from_timestamp, to_timestamp
-from telegram._utils.defaultvalue import DEFAULT_NONE, DEFAULT_20
+from telegram._utils.defaultvalue import DEFAULT_NONE, DEFAULT_20, DefaultValue
 from telegram._utils.types import JSONDict, FileInput, ODVInput, DVInput
 
 if TYPE_CHECKING:
@@ -110,8 +110,9 @@ class Message(TelegramObject):
             time. Converted to :class:`datetime.datetime`.
         media_group_id (:obj:`str`, optional): The unique identifier of a media message group this
             message belongs to.
-        text (str, optional): For text messages, the actual UTF-8 text of the message, 0-4096
-            characters. Also found as :attr:`telegram.constants.MAX_MESSAGE_LENGTH`.
+        text (:obj:`str`, optional): For text messages, the actual UTF-8 text of the message,
+            0-:tg-const:`telegram.constants.MessageLimit.TEXT_LENGTH`
+            characters.
         entities (List[:class:`telegram.MessageEntity`], optional): For text messages, special
             entities like usernames, URLs, bot commands, etc. that appear in the text. See
             :attr:`parse_entity` and :attr:`parse_entities` methods for how to use properly.
@@ -140,7 +141,7 @@ class Message(TelegramObject):
             the group or supergroup and information about them (the bot itself may be one of these
             members).
         caption (:obj:`str`, optional): Caption for the animation, audio, document, photo, video
-            or voice, 0-1024 characters.
+            or voice, 0-:tg-const:`telegram.constants.MessageLimit.CAPTION_LENGTH` characters.
         contact (:class:`telegram.Contact`, optional): Message is a shared contact, information
             about the contact.
         location (:class:`telegram.Location`, optional): Message is a shared location, information
@@ -262,7 +263,8 @@ class Message(TelegramObject):
         video_note (:class:`telegram.VideoNote`): Optional. Information about the video message.
         new_chat_members (List[:class:`telegram.User`]): Optional. Information about new members to
             the chat. (the bot itself may be one of these members).
-        caption (:obj:`str`): Optional. Caption for the document, photo or video, 0-1024
+        caption (:obj:`str`): Optional. Caption for the document, photo or video,
+            0-:tg-const:`telegram.constants.MessageLimit.CAPTION_LENGTH`
             characters.
         contact (:class:`telegram.Contact`): Optional. Information about the contact.
         location (:class:`telegram.Location`): Optional. Information about the location.
@@ -345,7 +347,6 @@ class Message(TelegramObject):
         'media_group_id',
         'caption',
         'video',
-        'bot',
         'entities',
         'via_bot',
         'new_chat_members',
@@ -387,46 +388,6 @@ class Message(TelegramObject):
         'voice_chat_started',
         'voice_chat_scheduled',
     )
-
-    ATTACHMENT_TYPES: ClassVar[List[str]] = [
-        'audio',
-        'game',
-        'animation',
-        'document',
-        'photo',
-        'sticker',
-        'video',
-        'voice',
-        'video_note',
-        'contact',
-        'location',
-        'venue',
-        'invoice',
-        'successful_payment',
-    ]
-    MESSAGE_TYPES: ClassVar[List[str]] = [
-        'text',
-        'new_chat_members',
-        'left_chat_member',
-        'new_chat_title',
-        'new_chat_photo',
-        'delete_chat_photo',
-        'group_chat_created',
-        'supergroup_chat_created',
-        'channel_chat_created',
-        'message_auto_delete_timer_changed',
-        'migrate_to_chat_id',
-        'migrate_from_chat_id',
-        'pinned_message',
-        'poll',
-        'dice',
-        'passport_data',
-        'proximity_alert_triggered',
-        'voice_chat_scheduled',
-        'voice_chat_started',
-        'voice_chat_ended',
-        'voice_chat_participants_invited',
-    ] + ATTACHMENT_TYPES
 
     def __init__(
         self,
@@ -547,7 +508,7 @@ class Message(TelegramObject):
         self.voice_chat_ended = voice_chat_ended
         self.voice_chat_participants_invited = voice_chat_participants_invited
         self.reply_markup = reply_markup
-        self.bot = bot
+        self.set_bot(bot)
 
         self._effective_attachment = DEFAULT_NONE
 
@@ -635,12 +596,15 @@ class Message(TelegramObject):
         self,
     ) -> Union[
         Contact,
+        Dice,
         Document,
         Animation,
         Game,
         Invoice,
         Location,
+        PassportData,
         List[PhotoSize],
+        Poll,
         Sticker,
         SuccessfulPayment,
         Venue,
@@ -649,35 +613,45 @@ class Message(TelegramObject):
         Voice,
         None,
     ]:
-        """
-        :class:`telegram.Audio`
-            or :class:`telegram.Contact`
-            or :class:`telegram.Document`
-            or :class:`telegram.Animation`
-            or :class:`telegram.Game`
-            or :class:`telegram.Invoice`
-            or :class:`telegram.Location`
-            or List[:class:`telegram.PhotoSize`]
-            or :class:`telegram.Sticker`
-            or :class:`telegram.SuccessfulPayment`
-            or :class:`telegram.Venue`
-            or :class:`telegram.Video`
-            or :class:`telegram.VideoNote`
-            or :class:`telegram.Voice`: The attachment that this message was sent with. May be
-            :obj:`None` if no attachment was sent.
+        """If this message is neither a plain text message nor a status update, this gives the
+        attachment that this message was sent with. This may be one of
+
+        * :class:`telegram.Audio`
+        * :class:`telegram.Dice`
+        * :class:`telegram.Contact`
+        * :class:`telegram.Document`
+        * :class:`telegram.Animation`
+        * :class:`telegram.Game`
+        * :class:`telegram.Invoice`
+        * :class:`telegram.Location`
+        * :class:`telegram.PassportData`
+        * List[:class:`telegram.PhotoSize`]
+        * :class:`telegram.Poll`
+        * :class:`telegram.Sticker`
+        * :class:`telegram.SuccessfulPayment`
+        * :class:`telegram.Venue`
+        * :class:`telegram.Video`
+        * :class:`telegram.VideoNote`
+        * :class:`telegram.Voice`
+
+         Otherwise :obj:`None` is returned.
+
+        .. versionchanged:: 14.0
+            :attr:`dice`, :attr:`passport_data` and :attr:`poll` are now also considered to be an
+            attachment.
 
         """
-        if self._effective_attachment is not DEFAULT_NONE:
-            return self._effective_attachment  # type: ignore
+        if not isinstance(self._effective_attachment, DefaultValue):
+            return self._effective_attachment
 
-        for i in Message.ATTACHMENT_TYPES:
-            if getattr(self, i, None):
-                self._effective_attachment = getattr(self, i)
+        for attachment_type in MessageAttachmentType:
+            if self[attachment_type]:
+                self._effective_attachment = self[attachment_type]
                 break
         else:
             self._effective_attachment = None
 
-        return self._effective_attachment  # type: ignore
+        return self._effective_attachment  # type: ignore[return-value]
 
     def __getitem__(self, item: str) -> Any:  # pylint: disable=inconsistent-return-statements
         return self.chat.id if item == 'chat_id' else super().__getitem__(item)
@@ -718,8 +692,10 @@ class Message(TelegramObject):
         else:
             # Unfortunately we need some ExtBot logic here because it's hard to move shortcut
             # logic into ExtBot
-            if hasattr(self.bot, 'defaults') and self.bot.defaults:  # type: ignore[union-attr]
-                default_quote = self.bot.defaults.quote  # type: ignore[union-attr]
+            if hasattr(self.get_bot(), 'defaults') and self.get_bot().defaults:  # type: ignore
+                default_quote = (
+                    self.get_bot().defaults.quote  # type: ignore[union-attr, attr-defined]
+                )
             else:
                 default_quote = None
             if (default_quote is None and self.chat.type != Chat.PRIVATE) or default_quote:
@@ -758,7 +734,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_message(
+        return await self.get_bot().send_message(
             chat_id=self.chat_id,
             text=text,
             parse_mode=parse_mode,
@@ -799,8 +775,8 @@ class Message(TelegramObject):
         For the documentation of the arguments, please see :meth:`telegram.Bot.send_message`.
 
         Note:
-            :attr:`telegram.ParseMode.MARKDOWN` is a legacy mode, retained by Telegram for
-            backward compatibility. You should use :meth:`reply_markdown_v2` instead.
+            :tg-const:`telegram.constants.ParseMode.MARKDOWN` is a legacy mode, retained by
+            Telegram for backward compatibility. You should use :meth:`reply_markdown_v2` instead.
 
         Args:
             quote (:obj:`bool`, optional): If set to :obj:`True`, the message is sent as an actual
@@ -812,7 +788,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_message(
+        return await self.get_bot().send_message(
             chat_id=self.chat_id,
             text=text,
             parse_mode=ParseMode.MARKDOWN,
@@ -862,7 +838,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_message(
+        return await self.get_bot().send_message(
             chat_id=self.chat_id,
             text=text,
             parse_mode=ParseMode.MARKDOWN_V2,
@@ -912,7 +888,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message posted.
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_message(
+        return await self.get_bot().send_message(
             chat_id=self.chat_id,
             text=text,
             parse_mode=ParseMode.HTML,
@@ -957,7 +933,7 @@ class Message(TelegramObject):
             :class:`telegram.error.TelegramError`
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_media_group(
+        return await self.get_bot().send_media_group(
             chat_id=self.chat_id,
             media=media,
             disable_notification=disable_notification,
@@ -999,7 +975,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_photo(
+        return await self.get_bot().send_photo(
             chat_id=self.chat_id,
             photo=photo,
             caption=caption,
@@ -1050,7 +1026,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_audio(
+        return await self.get_bot().send_audio(
             chat_id=self.chat_id,
             audio=audio,
             duration=duration,
@@ -1103,7 +1079,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_document(
+        return await self.get_bot().send_document(
             chat_id=self.chat_id,
             document=document,
             filename=filename,
@@ -1156,7 +1132,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_animation(
+        return await self.get_bot().send_animation(
             chat_id=self.chat_id,
             animation=animation,
             duration=duration,
@@ -1203,7 +1179,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_sticker(
+        return await self.get_bot().send_sticker(
             chat_id=self.chat_id,
             sticker=sticker,
             disable_notification=disable_notification,
@@ -1251,7 +1227,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_video(
+        return await self.get_bot().send_video(
             chat_id=self.chat_id,
             video=video,
             duration=duration,
@@ -1303,7 +1279,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_video_note(
+        return await self.get_bot().send_video_note(
             chat_id=self.chat_id,
             video_note=video_note,
             duration=duration,
@@ -1351,7 +1327,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_voice(
+        return await self.get_bot().send_voice(
             chat_id=self.chat_id,
             voice=voice,
             duration=duration,
@@ -1401,7 +1377,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_location(
+        return await self.get_bot().send_location(
             chat_id=self.chat_id,
             latitude=latitude,
             longitude=longitude,
@@ -1454,7 +1430,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_venue(
+        return await self.get_bot().send_venue(
             chat_id=self.chat_id,
             latitude=latitude,
             longitude=longitude,
@@ -1505,7 +1481,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_contact(
+        return await self.get_bot().send_contact(
             chat_id=self.chat_id,
             phone_number=phone_number,
             first_name=first_name,
@@ -1559,7 +1535,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_poll(
+        return await self.get_bot().send_poll(
             chat_id=self.chat_id,
             question=question,
             options=options,
@@ -1609,7 +1585,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_dice(
+        return await self.get_bot().send_dice(
             chat_id=self.chat_id,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -1638,7 +1614,7 @@ class Message(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return await self.bot.send_chat_action(
+        return await self.get_bot().send_chat_action(
             chat_id=self.chat_id,
             action=action,
             timeout=timeout,
@@ -1675,7 +1651,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_game(
+        return await self.get_bot().send_game(
             chat_id=self.chat_id,
             game_short_name=game_short_name,
             disable_notification=disable_notification,
@@ -1744,7 +1720,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.send_invoice(
+        return await self.get_bot().send_invoice(
             chat_id=self.chat_id,
             title=title,
             description=description,
@@ -1796,7 +1772,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, instance representing the message forwarded.
 
         """
-        return await self.bot.forward_message(
+        return await self.get_bot().forward_message(
             chat_id=chat_id,
             from_chat_id=self.chat_id,
             message_id=self.message_id,
@@ -1832,7 +1808,7 @@ class Message(TelegramObject):
             :class:`telegram.MessageId`: On success, returns the MessageId of the sent message.
 
         """
-        return await self.bot.copy_message(
+        return await self.get_bot().copy_message(
             chat_id=chat_id,
             from_chat_id=self.chat_id,
             message_id=self.message_id,
@@ -1885,7 +1861,7 @@ class Message(TelegramObject):
 
         """
         reply_to_message_id = self._quote(quote, reply_to_message_id)
-        return await self.bot.copy_message(
+        return await self.get_bot().copy_message(
             chat_id=self.chat_id,
             from_chat_id=from_chat_id,
             message_id=message_id,
@@ -1929,7 +1905,7 @@ class Message(TelegramObject):
             edited Message is returned, otherwise ``True`` is returned.
 
         """
-        return await self.bot.edit_message_text(
+        return await self.get_bot().edit_message_text(
             chat_id=self.chat_id,
             message_id=self.message_id,
             text=text,
@@ -1971,7 +1947,7 @@ class Message(TelegramObject):
             edited Message is returned, otherwise ``True`` is returned.
 
         """
-        return await self.bot.edit_message_caption(
+        return await self.get_bot().edit_message_caption(
             chat_id=self.chat_id,
             message_id=self.message_id,
             caption=caption,
@@ -2010,7 +1986,7 @@ class Message(TelegramObject):
             edited Message is returned, otherwise ``True`` is returned.
 
         """
-        return await self.bot.edit_message_media(
+        return await self.get_bot().edit_message_media(
             media=media,
             chat_id=self.chat_id,
             message_id=self.message_id,
@@ -2045,7 +2021,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, if edited message is sent by the bot, the
             edited Message is returned, otherwise ``True`` is returned.
         """
-        return await self.bot.edit_message_reply_markup(
+        return await self.get_bot().edit_message_reply_markup(
             chat_id=self.chat_id,
             message_id=self.message_id,
             reply_markup=reply_markup,
@@ -2085,7 +2061,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, if edited message is sent by the bot, the
             edited Message is returned, otherwise :obj:`True` is returned.
         """
-        return await self.bot.edit_message_live_location(
+        return await self.get_bot().edit_message_live_location(
             chat_id=self.chat_id,
             message_id=self.message_id,
             latitude=latitude,
@@ -2125,7 +2101,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, if edited message is sent by the bot, the
             edited Message is returned, otherwise :obj:`True` is returned.
         """
-        return await self.bot.stop_message_live_location(
+        return await self.get_bot().stop_message_live_location(
             chat_id=self.chat_id,
             message_id=self.message_id,
             reply_markup=reply_markup,
@@ -2161,7 +2137,7 @@ class Message(TelegramObject):
             :class:`telegram.Message`: On success, if edited message is sent by the bot, the
             edited Message is returned, otherwise :obj:`True` is returned.
         """
-        return await self.bot.set_game_score(
+        return await self.get_bot().set_game_score(
             chat_id=self.chat_id,
             message_id=self.message_id,
             user_id=user_id,
@@ -2197,7 +2173,7 @@ class Message(TelegramObject):
         Returns:
             List[:class:`telegram.GameHighScore`]
         """
-        return await self.bot.get_game_high_scores(
+        return await self.get_bot().get_game_high_scores(
             chat_id=self.chat_id,
             message_id=self.message_id,
             user_id=user_id,
@@ -2224,7 +2200,7 @@ class Message(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return await self.bot.delete_message(
+        return await self.get_bot().delete_message(
             chat_id=self.chat_id,
             message_id=self.message_id,
             timeout=timeout,
@@ -2251,7 +2227,7 @@ class Message(TelegramObject):
             returned.
 
         """
-        return await self.bot.stop_poll(
+        return await self.get_bot().stop_poll(
             chat_id=self.chat_id,
             message_id=self.message_id,
             reply_markup=reply_markup,
@@ -2278,7 +2254,7 @@ class Message(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return await self.bot.pin_chat_message(
+        return await self.get_bot().pin_chat_message(
             chat_id=self.chat_id,
             message_id=self.message_id,
             disable_notification=disable_notification,
@@ -2304,7 +2280,7 @@ class Message(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return await self.bot.unpin_chat_message(
+        return await self.get_bot().unpin_chat_message(
             chat_id=self.chat_id,
             message_id=self.message_id,
             timeout=timeout,
@@ -2755,14 +2731,14 @@ class Message(TelegramObject):
     @property
     def text_markdown(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message
-        using :class:`telegram.ParseMode.MARKDOWN`.
+        using :class:`telegram.constants.ParseMode.MARKDOWN`.
 
         Use this if you want to retrieve the message text with the entities formatted as Markdown
         in the same way the original message was formatted.
 
         Note:
-            :attr:`telegram.ParseMode.MARKDOWN` is is a legacy mode, retained by Telegram for
-            backward compatibility. You should use :meth:`text_markdown_v2` instead.
+            :tg-const:`telegram.constants.ParseMode.MARKDOWN` is a legacy mode, retained by
+            Telegram for backward compatibility. You should use :meth:`text_markdown_v2` instead.
 
         Returns:
             :obj:`str`: Message text with entities formatted as Markdown.
@@ -2773,7 +2749,7 @@ class Message(TelegramObject):
     @property
     def text_markdown_v2(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message
-        using :class:`telegram.ParseMode.MARKDOWN_V2`.
+        using :class:`telegram.constants.ParseMode.MARKDOWN_V2`.
 
         Use this if you want to retrieve the message text with the entities formatted as Markdown
         in the same way the original message was formatted.
@@ -2787,14 +2763,15 @@ class Message(TelegramObject):
     @property
     def text_markdown_urled(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message
-        using :class:`telegram.ParseMode.MARKDOWN`.
+        using :class:`telegram.constants.ParseMode.MARKDOWN`.
 
         Use this if you want to retrieve the message text with the entities formatted as Markdown.
         This also formats :attr:`telegram.MessageEntity.URL` as a hyperlink.
 
         Note:
-            :attr:`telegram.ParseMode.MARKDOWN` is is a legacy mode, retained by Telegram for
-            backward compatibility. You should use :meth:`text_markdown_v2_urled` instead.
+            :tg-const:`telegram.constants.ParseMode.MARKDOWN` is a legacy mode, retained by
+            Telegram for backward compatibility. You should use :meth:`text_markdown_v2_urled`
+            instead.
 
         Returns:
             :obj:`str`: Message text with entities formatted as Markdown.
@@ -2805,7 +2782,7 @@ class Message(TelegramObject):
     @property
     def text_markdown_v2_urled(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message
-        using :class:`telegram.ParseMode.MARKDOWN_V2`.
+        using :class:`telegram.constants.ParseMode.MARKDOWN_V2`.
 
         Use this if you want to retrieve the message text with the entities formatted as Markdown.
         This also formats :attr:`telegram.MessageEntity.URL` as a hyperlink.
@@ -2819,14 +2796,15 @@ class Message(TelegramObject):
     @property
     def caption_markdown(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message's
-        caption using :class:`telegram.ParseMode.MARKDOWN`.
+        caption using :class:`telegram.constants.ParseMode.MARKDOWN`.
 
         Use this if you want to retrieve the message caption with the caption entities formatted as
         Markdown in the same way the original message was formatted.
 
         Note:
-            :attr:`telegram.ParseMode.MARKDOWN` is is a legacy mode, retained by Telegram for
-            backward compatibility. You should use :meth:`caption_markdown_v2` instead.
+            :tg-const:`telegram.constants.ParseMode.MARKDOWN` is a legacy mode, retained by
+            Telegram for backward compatibility. You should use :meth:`caption_markdown_v2`
+            instead.
 
         Returns:
             :obj:`str`: Message caption with caption entities formatted as Markdown.
@@ -2837,7 +2815,7 @@ class Message(TelegramObject):
     @property
     def caption_markdown_v2(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message's
-        caption using :class:`telegram.ParseMode.MARKDOWN_V2`.
+        caption using :class:`telegram.constants.ParseMode.MARKDOWN_V2`.
 
         Use this if you want to retrieve the message caption with the caption entities formatted as
         Markdown in the same way the original message was formatted.
@@ -2853,14 +2831,15 @@ class Message(TelegramObject):
     @property
     def caption_markdown_urled(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message's
-        caption using :class:`telegram.ParseMode.MARKDOWN`.
+        caption using :class:`telegram.constants.ParseMode.MARKDOWN`.
 
         Use this if you want to retrieve the message caption with the caption entities formatted as
         Markdown. This also formats :attr:`telegram.MessageEntity.URL` as a hyperlink.
 
         Note:
-            :attr:`telegram.ParseMode.MARKDOWN` is is a legacy mode, retained by Telegram for
-            backward compatibility. You should use :meth:`caption_markdown_v2_urled` instead.
+            :tg-const:`telegram.constants.ParseMode.MARKDOWN` is a legacy mode, retained by
+            Telegram for backward compatibility. You should use :meth:`caption_markdown_v2_urled`
+            instead.
 
         Returns:
             :obj:`str`: Message caption with caption entities formatted as Markdown.
@@ -2871,7 +2850,7 @@ class Message(TelegramObject):
     @property
     def caption_markdown_v2_urled(self) -> str:
         """Creates an Markdown-formatted string from the markup entities found in the message's
-        caption using :class:`telegram.ParseMode.MARKDOWN_V2`.
+        caption using :class:`telegram.constants.ParseMode.MARKDOWN_V2`.
 
         Use this if you want to retrieve the message caption with the caption entities formatted as
         Markdown. This also formats :attr:`telegram.MessageEntity.URL` as a hyperlink.

@@ -77,11 +77,11 @@ class TestInlineQuery:
             InlineQuery.answer, Bot.answer_inline_query, ['inline_query_id'], ['auto_pagination']
         )
         assert await check_shortcut_call(
-            inline_query.answer, inline_query.bot, 'answer_inline_query'
+            inline_query.answer, inline_query.get_bot(), 'answer_inline_query'
         )
-        assert await check_defaults_handling(inline_query.answer, inline_query.bot)
+        assert await check_defaults_handling(inline_query.answer, inline_query.get_bot())
 
-        monkeypatch.setattr(inline_query.bot, 'answer_inline_query', make_assertion)
+        monkeypatch.setattr(inline_query.get_bot(), 'answer_inline_query', make_assertion)
         assert await inline_query.answer(results=[])
 
     @pytest.mark.asyncio
@@ -96,7 +96,7 @@ class TestInlineQuery:
             offset_matches = kwargs.get('current_offset') == inline_query.offset
             return offset_matches and inline_query_id_matches
 
-        monkeypatch.setattr(inline_query.bot, 'answer_inline_query', make_assertion)
+        monkeypatch.setattr(inline_query.get_bot(), 'answer_inline_query', make_assertion)
         assert await inline_query.answer(results=[], auto_pagination=True)
 
     def test_equality(self):

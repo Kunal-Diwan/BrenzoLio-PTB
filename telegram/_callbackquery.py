@@ -93,7 +93,6 @@ class CallbackQuery(TelegramObject):
     """
 
     __slots__ = (
-        'bot',
         'game_short_name',
         'message',
         'chat_instance',
@@ -125,7 +124,7 @@ class CallbackQuery(TelegramObject):
         self.inline_message_id = inline_message_id
         self.game_short_name = game_short_name
 
-        self.bot = bot
+        self.set_bot(bot)
 
         self._id_attrs = (self.id,)
 
@@ -162,7 +161,7 @@ class CallbackQuery(TelegramObject):
             :obj:`bool`: On success, :obj:`True` is returned.
 
         """
-        return await self.bot.answer_callback_query(
+        return await self.get_bot().answer_callback_query(
             callback_query_id=self.id,
             text=text,
             show_alert=show_alert,
@@ -200,7 +199,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.edit_message_text(
+            return await self.get_bot().edit_message_text(
                 inline_message_id=self.inline_message_id,
                 text=text,
                 parse_mode=parse_mode,
@@ -250,7 +249,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.edit_message_caption(
+            return await self.get_bot().edit_message_caption(
                 caption=caption,
                 inline_message_id=self.inline_message_id,
                 reply_markup=reply_markup,
@@ -303,7 +302,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.edit_message_reply_markup(
+            return await self.get_bot().edit_message_reply_markup(
                 reply_markup=reply_markup,
                 inline_message_id=self.inline_message_id,
                 timeout=timeout,
@@ -342,7 +341,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.edit_message_media(
+            return await self.get_bot().edit_message_media(
                 inline_message_id=self.inline_message_id,
                 media=media,
                 reply_markup=reply_markup,
@@ -391,7 +390,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.edit_message_live_location(
+            return await self.get_bot().edit_message_live_location(
                 inline_message_id=self.inline_message_id,
                 latitude=latitude,
                 longitude=longitude,
@@ -444,7 +443,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.stop_message_live_location(
+            return await self.get_bot().stop_message_live_location(
                 inline_message_id=self.inline_message_id,
                 reply_markup=reply_markup,
                 timeout=timeout,
@@ -485,7 +484,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.set_game_score(
+            return await self.get_bot().set_game_score(
                 inline_message_id=self.inline_message_id,
                 user_id=user_id,
                 score=score,
@@ -528,7 +527,7 @@ class CallbackQuery(TelegramObject):
 
         """
         if self.inline_message_id:
-            return await self.bot.get_game_high_scores(
+            return await self.get_bot().get_game_high_scores(
                 inline_message_id=self.inline_message_id,
                 user_id=user_id,
                 timeout=timeout,
@@ -649,9 +648,11 @@ class CallbackQuery(TelegramObject):
             api_kwargs=api_kwargs,
         )
 
-    MAX_ANSWER_TEXT_LENGTH: ClassVar[int] = constants.MAX_ANSWER_CALLBACK_QUERY_TEXT_LENGTH
+    MAX_ANSWER_TEXT_LENGTH: ClassVar[
+        int
+    ] = constants.CallbackQueryLimit.ANSWER_CALLBACK_QUERY_TEXT_LENGTH
     """
-    :const:`telegram.constants.MAX_ANSWER_CALLBACK_QUERY_TEXT_LENGTH`
+    :const:`telegram.constants.CallbackQueryLimit.ANSWER_CALLBACK_QUERY_TEXT_LENGTH`
 
     .. versionadded:: 13.2
     """

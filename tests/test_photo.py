@@ -498,10 +498,10 @@ class TestPhoto:
             return kwargs['file_id'] == photo.file_id
 
         assert check_shortcut_signature(PhotoSize.get_file, Bot.get_file, ['file_id'], [])
-        assert await check_shortcut_call(photo.get_file, photo.bot, 'get_file')
-        assert await check_defaults_handling(photo.get_file, photo.bot)
+        assert await check_shortcut_call(photo.get_file, photo.get_bot(), 'get_file')
+        assert await check_defaults_handling(photo.get_file, photo.get_bot())
 
-        monkeypatch.setattr(photo.bot, 'get_file', make_assertion)
+        monkeypatch.setattr(photo.get_bot(), 'get_file', make_assertion)
         assert await photo.get_file()
 
     def test_equality(self, photo):

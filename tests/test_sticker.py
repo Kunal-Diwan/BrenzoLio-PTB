@@ -547,10 +547,10 @@ class TestStickerSet:
             return kwargs['file_id'] == sticker.file_id
 
         assert check_shortcut_signature(Sticker.get_file, Bot.get_file, ['file_id'], [])
-        assert await check_shortcut_call(sticker.get_file, sticker.bot, 'get_file')
-        assert await check_defaults_handling(sticker.get_file, sticker.bot)
+        assert await check_shortcut_call(sticker.get_file, sticker.get_bot(), 'get_file')
+        assert await check_defaults_handling(sticker.get_file, sticker.get_bot())
 
-        monkeypatch.setattr(sticker.bot, 'get_file', make_assertion)
+        monkeypatch.setattr(sticker.get_bot(), 'get_file', make_assertion)
         assert await sticker.get_file()
 
     def test_equality(self):

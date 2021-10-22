@@ -153,10 +153,12 @@ class TestChatPhoto:
             return kwargs['file_id'] == chat_photo.small_file_id
 
         assert check_shortcut_signature(ChatPhoto.get_small_file, Bot.get_file, ['file_id'], [])
-        assert await check_shortcut_call(chat_photo.get_small_file, chat_photo.bot, 'get_file')
-        assert await check_defaults_handling(chat_photo.get_small_file, chat_photo.bot)
+        assert await check_shortcut_call(
+            chat_photo.get_small_file, chat_photo.get_bot(), 'get_file'
+        )
+        assert await check_defaults_handling(chat_photo.get_small_file, chat_photo.get_bot())
 
-        monkeypatch.setattr(chat_photo.bot, 'get_file', make_assertion)
+        monkeypatch.setattr(chat_photo.get_bot(), 'get_file', make_assertion)
         assert await chat_photo.get_small_file()
 
     @pytest.mark.asyncio
@@ -165,10 +167,10 @@ class TestChatPhoto:
             return kwargs['file_id'] == chat_photo.big_file_id
 
         assert check_shortcut_signature(ChatPhoto.get_big_file, Bot.get_file, ['file_id'], [])
-        assert await check_shortcut_call(chat_photo.get_big_file, chat_photo.bot, 'get_file')
-        assert await check_defaults_handling(chat_photo.get_big_file, chat_photo.bot)
+        assert await check_shortcut_call(chat_photo.get_big_file, chat_photo.get_bot(), 'get_file')
+        assert await check_defaults_handling(chat_photo.get_big_file, chat_photo.get_bot())
 
-        monkeypatch.setattr(chat_photo.bot, 'get_file', make_assertion)
+        monkeypatch.setattr(chat_photo.get_bot(), 'get_file', make_assertion)
         assert await chat_photo.get_big_file()
 
     def test_equality(self):
