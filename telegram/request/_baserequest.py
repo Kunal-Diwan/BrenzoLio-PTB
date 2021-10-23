@@ -51,10 +51,7 @@ class BaseRequest(abc.ABC):
 
     __slots__ = ()
 
-    user_agent = (
-        f'Python Telegram Bot {ptb_ver}'
-        f' (https://github.com/python-telegram-bot/python-telegram-bot)'
-    )
+    user_agent = f'python-telegram-bot {ptb_ver} (https://python-telegram-bot.org)'
 
     @property
     @abc.abstractmethod
@@ -81,7 +78,7 @@ class BaseRequest(abc.ABC):
     async def post(
         self,
         url: str,
-        json_data: Optional[str],
+        data: Optional[JSONDict],
         files: Optional[UploadFileDict],
         timeout: float = None,
     ) -> Union[JSONDict, bool]:
@@ -89,7 +86,7 @@ class BaseRequest(abc.ABC):
 
         Args:
             url (:obj:`str`): The web location we want to retrieve.
-            json_data (:obj:`str`, optional): The JSON data.
+            data (:obj:`str`, optional): The JSON data.
             files (Dict[:obj:`str`, Tuple[:obj:`str`, :obj:`bytes`, :obj:`str`], optional):
                 Files to be attached to the request.
             timeout (:obj:`int` | :obj:`float`, optional): If this value is specified, use it as
@@ -101,7 +98,7 @@ class BaseRequest(abc.ABC):
 
         """
         result = await self._request_wrapper(
-            method='POST', url=url, json_data=json_data, files=files, read_timeout=timeout
+            method='POST', url=url, data=data, files=files, read_timeout=timeout
         )
         return self._parse(result)
 
@@ -143,7 +140,7 @@ class BaseRequest(abc.ABC):
         self,
         method: str,
         url: str,
-        json_data: Optional[str],
+        data: Optional[JSONDict],
         files: Optional[UploadFileDict],
         read_timeout: float = None,
     ) -> bytes:
@@ -156,7 +153,7 @@ class BaseRequest(abc.ABC):
         Args:
             method: HTTP method (i.e. 'POST', 'GET', etc.).
             url: The request's URL.
-            json_data: Data to send over as the request's payload.
+            data: Data to send over as the request's payload.
             files: Files to upload as multi-form. Key is the form field name. Value is the file to
                    upload (filename, file-content, content-type).
             read_timeout: Timeout for waiting to server's response.
@@ -170,7 +167,7 @@ class BaseRequest(abc.ABC):
         """
         try:
             code, payload = await self.do_request(
-                method, url, json_data, files, read_timeout=read_timeout
+                method, url, data, files, read_timeout=read_timeout
             )
         except TelegramError:
             raise
@@ -234,12 +231,16 @@ class BaseRequest(abc.ABC):
 
         return data['result']
 
+    @staticmethod
+    def json_dump(data: JSONDict) -> str:
+        return json.dumps(data)
+
     @abc.abstractmethod
     async def do_request(
         self,
         method: str,
         url: str,
-        json_data: Optional[str],
+        data: Optional[JSONDict],
         files: Optional[UploadFileDict],
         read_timeout: float = None,
         write_timeout: float = None,
@@ -249,7 +250,7 @@ class BaseRequest(abc.ABC):
         Args:
             method: HTTP method (i.e. 'POST', 'GET', etc.).
             url: The request's URL.
-            json_data: Data to send over as the request's payload.
+            data: Data to send over as the request's payload.
             files: Files to upload as multi-form. Key is the form field name. Value is the file to
                    upload (filename, file-content, content-type).
             read_timeout: Timeout for waiting to server's response.

@@ -266,42 +266,37 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         return DefaultValue.get_value(timeout)
 
-    @staticmethod
-    def _insert_file_into_data(
-        key: str, data: JSONDict, files: UploadFileDict, medium: object
-    ) -> None:
-        """Takes the output of parse_file_input and correctly inserts it into `data` and `files`.
-        This is done *in place*. Note that we *always* put the data into `files`. This is not
-        documented everywhere where `InputFile` is accepted, but has been confirmed to be
-        supported at https://github.com/tdlib/telegram-bot-api/issues/167
-
-        Args:
-            key: This key will be added to `data`.
-            data: The dict for JSON data to be send to TG
-            files: The dict for attached files to be send to TG
-            medium: The return value of  `parse_file_input`
-
-        Raises:
-            TypeError: if ``medium`` is not valid to represent a file to be uploaded.
+    @classmethod
+    def _to_json_dumpable(cls, obj: object, files: UploadFileDict) -> Union[JSONDict, Any]:
+        """Converts `obj` into something that we can json-dump. If `obj` contains files to be
+        uploaded, they will be placed into the `files` dictionary and the corresponding
+        attach:// value will be returned.
+        Note that we use this for *all* files to be uploaded. This is not documented in the
+        official API, but has been comfirmed to be supported in the official Bot API repository.
+        See https://github.com/tdlib/telegram-bot-api/issues/167
         """
-        if isinstance(medium, str):
-            data[key] = medium
-            return
-
-        if isinstance(medium, InputFile):
-            data[key] = medium.attach
-            files[medium.attach] = medium.field_tuple
-            return
-
-        raise TypeError(
-            f'Object of type {type(medium)} is not a valid input for a file to be uploaded.'
-        )
+        if isinstance(obj, InputFile):
+            files[obj.attach_name] = obj.field_tuple
+            return obj.attach_uri
+        if isinstance(obj, InputMedia) and isinstance(obj.media, InputFile):
+            # We call to_dict and change the returned dict instead of overriding
+            # value.media in case the same object is reused for another request
+            data = obj.to_dict()
+            data['media'] = obj.media.attach_uri
+            files[obj.media.attach_name] = obj.media.field_tuple
+            return data
+        if isinstance(obj, TelegramObject):
+            return obj.to_dict()
+        if isinstance(obj, list):
+            # In case we send files, we need to json dump lists manually
+            # So let's just json dump this list …
+            return json.dumps([cls._to_json_dumpable(entry, files) for entry in obj])
+        return obj
 
     async def _post(
         self,
         endpoint: str,
         data: JSONDict = None,
-        files: UploadFileDict = None,
         timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> Union[bool, JSONDict, None]:
@@ -323,23 +318,18 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         # Drop any None values because Telegram doesn't handle them well
         data = {key: value for key, value in data.items() if value is not None}
 
-        # Convert content to something json serializable
+        # Convert data to something JSON-dumpable
+        files: UploadFileDict = {}
         for key, value in data.items():
             # We do this here so that _insert_defaults (see above) has a chance to convert
             # to the default timezone in case this is called by ExtBot
             if isinstance(value, datetime):
                 data[key] = to_timestamp(value)
-            elif isinstance(value, TelegramObject):
-                data[key] = value.to_dict()
-            elif isinstance(value, list):
-                data[key] = [
-                    entry.to_dict() if isinstance(entry, TelegramObject) else entry
-                    for entry in value
-                ]
+            data[key] = self._to_json_dumpable(value, files)
 
         return await self.request.post(
             f'{self.base_url}/{endpoint}',
-            json_data=json.dumps(data) if data else None,
+            data=data if data else None,
             files=files if files else None,
             timeout=effective_timeout,
         )
@@ -348,7 +338,6 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         endpoint: str,
         data: JSONDict,
-        files: UploadFileDict = None,
         reply_to_message_id: int = None,
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
@@ -367,9 +356,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if reply_markup is not None:
             data['reply_markup'] = reply_markup
 
-        result = await self._post(
-            endpoint=endpoint, data=data, files=files, timeout=timeout, api_kwargs=api_kwargs
-        )
+        result = await self._post(endpoint, data, timeout=timeout, api_kwargs=api_kwargs)
 
         if result is True:
             return result
@@ -706,15 +693,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'photo': parse_file_input(photo, PhotoSize, filename=filename),
             'parse_mode': parse_mode,
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='photo',
-            data=data,
-            files=files,
-            medium=parse_file_input(photo, PhotoSize, filename=filename),
-        )
 
         if caption:
             data['caption'] = caption
@@ -725,7 +706,6 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return await self._message(  # type: ignore[return-value]
             'sendPhoto',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -828,15 +808,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'audio': parse_file_input(audio, Audio, filename=filename),
             'parse_mode': parse_mode,
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='audio',
-            data=data,
-            files=files,
-            medium=parse_file_input(audio, Audio, filename=filename),
-        )
 
         if duration:
             data['duration'] = duration
@@ -850,17 +824,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if caption_entities:
             data['caption_entities'] = caption_entities
         if thumb:
-            self._insert_file_into_data(
-                key='thumb',
-                data=data,
-                files=files,
-                medium=parse_file_input(thumb),
-            )
+            data['thumb'] = parse_file_input(thumb)
 
         return await self._message(  # type: ignore[return-value]
             'sendAudio',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -955,15 +923,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'document': parse_file_input(document, Document, filename=filename),
             'parse_mode': parse_mode,
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='document',
-            data=data,
-            files=files,
-            medium=parse_file_input(document, Document, filename=filename),
-        )
 
         if caption:
             data['caption'] = caption
@@ -973,14 +935,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if disable_content_type_detection is not None:
             data['disable_content_type_detection'] = disable_content_type_detection
         if thumb:
-            self._insert_file_into_data(
-                key='thumb', data=data, files=files, medium=parse_file_input(thumb)
-            )
+            data['thumb'] = parse_file_input(thumb)
 
         return await self._message(  # type: ignore[return-value]
             'sendDocument',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -1040,15 +999,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        data: JSONDict = {'chat_id': chat_id}
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='sticker', data=data, files=files, medium=parse_file_input(sticker, Sticker)
-        )
+        data: JSONDict = {'chat_id': chat_id, 'sticker': parse_file_input(sticker, Sticker)}
         return await self._message(  # type: ignore[return-value]
             'sendSticker',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -1155,15 +1109,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'video': parse_file_input(video, Video, filename=filename),
             'parse_mode': parse_mode,
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='video',
-            data=data,
-            files=files,
-            medium=parse_file_input(video, Video, filename=filename),
-        )
 
         if duration:
             data['duration'] = duration
@@ -1178,14 +1126,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if height:
             data['height'] = height
         if thumb:
-            self._insert_file_into_data(
-                key='thumb', data=data, files=files, medium=parse_file_input(thumb)
-            )
+            data['thumb'] = parse_file_input(thumb)
 
         return await self._message(  # type: ignore[return-value]
             'sendVideo',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -1272,28 +1217,19 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'video_note': parse_file_input(video_note, VideoNote, filename=filename),
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='video_note',
-            data=data,
-            files=files,
-            medium=parse_file_input(video_note, VideoNote, filename=filename),
-        )
 
         if duration is not None:
             data['duration'] = duration
         if length is not None:
             data['length'] = length
         if thumb:
-            self._insert_file_into_data(
-                key='thumb', data=data, files=files, medium=parse_file_input(thumb)
-            )
+            data['thumb'] = parse_file_input(thumb)
 
         return await self._message(  # type: ignore[return-value]
             'sendVideoNote',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -1394,15 +1330,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'animation': parse_file_input(animation, Animation, filename=filename),
             'parse_mode': parse_mode,
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='animation',
-            data=data,
-            files=files,
-            medium=parse_file_input(animation, Animation, filename=filename),
-        )
 
         if duration:
             data['duration'] = duration
@@ -1411,9 +1341,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if height:
             data['height'] = height
         if thumb:
-            self._insert_file_into_data(
-                key='thumb', data=data, files=files, medium=parse_file_input(thumb)
-            )
+            data['thumb'] = parse_file_input(thumb)
         if caption:
             data['caption'] = caption
         if caption_entities:
@@ -1422,7 +1350,6 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return await self._message(  # type: ignore[return-value]
             'sendAnimation',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -1508,15 +1435,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {
             'chat_id': chat_id,
+            'voice': parse_file_input(voice, Voice, filename=filename),
             'parse_mode': parse_mode,
         }
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='voice',
-            data=data,
-            files=files,
-            medium=parse_file_input(voice, Voice, filename=filename),
-        )
 
         if duration:
             data['duration'] = duration
@@ -1529,7 +1450,6 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return await self._message(  # type: ignore[return-value]
             'sendVoice',
             data,
-            files=files,
             timeout=timeout,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
@@ -2275,9 +2195,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         for result in effective_results:
             self._insert_defaults_for_ilq_results(result)
 
-        results_dicts = effective_results
-
-        data: JSONDict = {'inline_query_id': inline_query_id, 'results': results_dicts}
+        data: JSONDict = {'inline_query_id': inline_query_id, 'results': effective_results}
 
         if cache_time or cache_time == 0:
             data['cache_time'] = cache_time
@@ -2635,7 +2553,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
         if entities:
-            data['entities'] = entities
+            data['entities'] = [me.to_dict() for me in entities]
 
         return await self._message(
             'editMessageText',
@@ -3008,12 +2926,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'url': url}
-        files: UploadFileDict = {}
 
         if certificate:
-            self._insert_file_into_data(
-                key='certificate', data=data, files=files, medium=parse_file_input(certificate)
-            )
+            data['certificate'] = parse_file_input(certificate)
         if max_connections is not None:
             data['max_connections'] = max_connections
         if allowed_updates is not None:
@@ -3023,9 +2938,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if drop_pending_updates:
             data['drop_pending_updates'] = drop_pending_updates
 
-        result = await self._post(
-            'setWebhook', data, files=files, timeout=timeout, api_kwargs=api_kwargs
-        )
+        result = await self._post('setWebhook', data, timeout=timeout, api_kwargs=api_kwargs)
 
         return result  # type: ignore[return-value]
 
@@ -3672,7 +3585,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
                 # not using an assert statement directly here since they are removed in
                 # the optimized bytecode
                 raise AssertionError
-            data['shipping_options'] = shipping_options
+            data['shipping_options'] = [option.to_dict() for option in shipping_options]
         if error_message is not None:
             data['error_message'] = error_message
 
@@ -4203,14 +4116,8 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        data: JSONDict = {'chat_id': chat_id}
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='photo', data=data, files=files, medium=parse_file_input(photo)
-        )
-        result = await self._post(
-            'setChatPhoto', data, files=files, timeout=timeout, api_kwargs=api_kwargs
-        )
+        data: JSONDict = {'chat_id': chat_id, 'photo': parse_file_input(photo)}
+        result = await self._post('setChatPhoto', data, timeout=timeout, api_kwargs=api_kwargs)
         return result  # type: ignore[return-value]
 
     @_log
@@ -4505,13 +4412,9 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        data: JSONDict = {'user_id': user_id}
-        files: UploadFileDict = {}
-        self._insert_file_into_data(
-            key='png_sticker', data=data, files=files, medium=parse_file_input(png_sticker)
-        )
+        data: JSONDict = {'user_id': user_id, 'png_sticker': parse_file_input(png_sticker)}
         result = await self._post(
-            'uploadStickerFile', data, files=files, timeout=timeout, api_kwargs=api_kwargs
+            'uploadStickerFile', data, timeout=timeout, api_kwargs=api_kwargs
         )
         return File.de_json(result, self)  # type: ignore[return-value, arg-type]
 
@@ -4588,23 +4491,18 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'user_id': user_id, 'name': name, 'title': title, 'emojis': emojis}
-        files: UploadFileDict = {}
 
         if png_sticker is not None:
-            self._insert_file_into_data(
-                key='png_sticker', data=data, files=files, medium=parse_file_input(png_sticker)
-            )
+            data['png_sticker'] = parse_file_input(png_sticker)
         if tgs_sticker is not None:
-            self._insert_file_into_data(
-                key='tgs_sticker', data=data, files=files, medium=parse_file_input(tgs_sticker)
-            )
+            data['tgs_sticker'] = parse_file_input(tgs_sticker)
         if contains_masks is not None:
             data['contains_masks'] = contains_masks
         if mask_position is not None:
             data['mask_position'] = mask_position
 
         result = await self._post(
-            'createNewStickerSet', data, files=files, timeout=timeout, api_kwargs=api_kwargs
+            'createNewStickerSet', data, timeout=timeout, api_kwargs=api_kwargs
         )
 
         return result  # type: ignore[return-value]
@@ -4675,22 +4573,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'user_id': user_id, 'name': name, 'emojis': emojis}
-        files: UploadFileDict = {}
 
         if png_sticker is not None:
-            self._insert_file_into_data(
-                key='png_sticker', data=data, files=files, medium=parse_file_input(png_sticker)
-            )
+            data['png_sticker'] = parse_file_input(png_sticker)
         if tgs_sticker is not None:
-            self._insert_file_into_data(
-                key='tgs_sticker', data=data, files=files, medium=parse_file_input(tgs_sticker)
-            )
+            data['tgs_sticker'] = parse_file_input(tgs_sticker)
         if mask_position is not None:
             data['mask_position'] = mask_position
 
-        result = await self._post(
-            'addStickerToSet', data, files=files, timeout=timeout, api_kwargs=api_kwargs
-        )
+        result = await self._post('addStickerToSet', data, timeout=timeout, api_kwargs=api_kwargs)
 
         return result  # type: ignore[return-value]
 
@@ -4800,13 +4691,8 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'name': name, 'user_id': user_id}
-        files: UploadFileDict = {}
-
         if thumb is not None:
             data['thumb'] = parse_file_input(thumb)
-            self._insert_file_into_data(
-                key='thumb', data=data, files=files, medium=parse_file_input(thumb)
-            )
 
         result = await self._post(
             'setStickerSetThumb', data, timeout=timeout, api_kwargs=api_kwargs

@@ -43,12 +43,13 @@ class InputFile:
 
     Attributes:
         input_file_content (:obj:`bytes`): The binary content of the file to send.
+        attach_name (:obj:`str`): Attach name.
         filename (:obj:`str`): Optional. Filename for the file to be sent.
         mimetype (:obj:`str`): Optional. The mimetype inferred from the file to be sent.
 
     """
 
-    __slots__ = ('filename', 'attach', 'input_file_content', 'mimetype')
+    __slots__ = ('filename', 'attach_name', 'input_file_content', 'mimetype')
 
     def __init__(self, obj: Union[IO, bytes], filename: str = None):
         self.filename = None
@@ -56,7 +57,7 @@ class InputFile:
             self.input_file_content = obj
         else:
             self.input_file_content = obj.read()
-        self.attach = 'attached' + uuid4().hex
+        self.attach_name = 'attached' + uuid4().hex
 
         if filename:
             self.filename = filename
@@ -104,3 +105,8 @@ class InputFile:
     @staticmethod
     def is_file(obj: object) -> bool:  # skipcq: PY-D0003
         return hasattr(obj, 'read')
+
+    @property
+    def attach_uri(self) -> str:
+        """URI to insert into the JSON data for uploading the file."""
+        return f'attach://{self.attach_name}'

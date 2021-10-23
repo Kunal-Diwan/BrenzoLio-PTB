@@ -39,7 +39,7 @@ from typing import Tuple, Optional, Union, Dict
 
 import httpx
 
-from telegram._utils.types import UploadFileDict
+from telegram._utils.types import UploadFileDict, JSONDict
 from telegram.error import TimedOut, NetworkError
 from telegram.request import BaseRequest
 
@@ -105,7 +105,7 @@ class HTTPXRequest(BaseRequest):
         self,
         method: str,
         url: str,
-        json_data: Optional[str],
+        data: Optional[JSONDict],
         files: Optional[UploadFileDict],
         read_timeout: float = None,
         write_timeout: float = None,
@@ -124,17 +124,21 @@ class HTTPXRequest(BaseRequest):
 
         headers = {'User-Agent': self.user_agent}
 
-        kwargs: Dict[str, Union[str, UploadFileDict]] = {}
+        kwargs: Dict[str, Union[bytes, JSONDict, UploadFileDict]] = {}
         if files:
             kwargs['files'] = files
-            # kwargs['files'] = {f'upload{i}': x for i, x in enumerate(files)}
-        if json_data:
-            kwargs['json'] = json_data
+            if data:
+                kwargs['data'] = data
+        elif data:
+            # kwargs['json'] = json_data
+            kwargs['content'] = self.json_dump(data).encode()
+            headers['Content-Type'] = 'application/json'
 
         try:
             res = await self._client.request(
                 # TODO: check if we can remove the type: ignore - also depending on above comment
                 method,
+                # url='https://httpbin.org/post' if 'sendPhoto' in url else url,
                 url,
                 headers=headers,
                 timeout=timeout,

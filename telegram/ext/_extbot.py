@@ -49,7 +49,7 @@ from telegram import (
     InputMedia,
 )
 
-from telegram._utils.types import JSONDict, ODVInput, DVInput, UploadFileDict
+from telegram._utils.types import JSONDict, ODVInput, DVInput
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue
 from telegram._utils.datetime import to_timestamp
 from telegram.ext._callbackdatacache import CallbackDataCache
@@ -252,7 +252,6 @@ class ExtBot(Bot):
         self,
         endpoint: str,
         data: JSONDict,
-        files: UploadFileDict = None,
         reply_to_message_id: int = None,
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
@@ -265,7 +264,6 @@ class ExtBot(Bot):
         result = await super()._message(
             endpoint=endpoint,
             data=data,
-            files=files,
             reply_to_message_id=reply_to_message_id,
             disable_notification=disable_notification,
             reply_markup=self._replace_keyboard(reply_markup),

@@ -592,7 +592,7 @@ class TestChat:
         assert await chat.copy_message(chat_id='test_copy', message_id=42)
 
     @pytest.mark.asyncio
-    def test_export_invite_link(self, monkeypatch, chat):
+    async def test_export_invite_link(self, monkeypatch, chat):
         async def make_assertion(*_, **kwargs):
             return kwargs['chat_id'] == chat.id
 
@@ -608,7 +608,7 @@ class TestChat:
         assert await chat.export_invite_link()
 
     @pytest.mark.asyncio
-    def test_create_invite_link(self, monkeypatch, chat):
+    async def test_create_invite_link(self, monkeypatch, chat):
         async def make_assertion(*_, **kwargs):
             return kwargs['chat_id'] == chat.id
 
@@ -624,7 +624,7 @@ class TestChat:
         assert await chat.create_invite_link()
 
     @pytest.mark.asyncio
-    def test_edit_invite_link(self, monkeypatch, chat):
+    async def test_edit_invite_link(self, monkeypatch, chat):
         link = "ThisIsALink"
 
         async def make_assertion(*_, **kwargs):
@@ -642,7 +642,7 @@ class TestChat:
         assert await chat.edit_invite_link(invite_link=link)
 
     @pytest.mark.asyncio
-    def test_revoke_invite_link(self, monkeypatch, chat):
+    async def test_revoke_invite_link(self, monkeypatch, chat):
         link = "ThisIsALink"
 
         async def make_assertion(*_, **kwargs):
