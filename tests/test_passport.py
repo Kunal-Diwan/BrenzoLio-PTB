@@ -471,7 +471,7 @@ class TestPassport:
 
     @pytest.mark.asyncio
     async def test_mocked_set_passport_data_errors(self, monkeypatch, bot, chat_id, passport_data):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             return (
                 data['user_id'] == chat_id
                 and data['errors'][0]['file_hash']
@@ -482,7 +482,7 @@ class TestPassport:
                 == (passport_data.decrypted_credentials.secure_data.driver_license.data.data_hash)
             )
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.set_passport_data_errors(
             chat_id,
             [

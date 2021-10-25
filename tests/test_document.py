@@ -25,6 +25,7 @@ from flaky import flaky
 from telegram import Document, PhotoSize, Voice, MessageEntity, Bot
 from telegram.error import BadRequest, TelegramError
 from telegram.helpers import escape_markdown
+from telegram.request import RequestData
 from tests.conftest import (
     check_shortcut_signature,
     check_shortcut_call,
@@ -147,7 +148,8 @@ class TestDocument:
     async def test_send_with_document(
         self, monkeypatch, bot, chat_id, document, disable_content_type_detection
     ):
-        async def make_assertion(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             type_detection = (
                 data.get('disable_content_type_detection') == disable_content_type_detection
             )

@@ -94,7 +94,7 @@ class TestInlineKeyboardMarkup:
 
     @pytest.mark.asyncio
     async def test_expected_values_empty_switch(self, inline_keyboard_markup, bot, monkeypatch):
-        async def test(
+        async def make_assertion(
             url,
             data,
             reply_to_message_id=None,
@@ -117,7 +117,7 @@ class TestInlineKeyboardMarkup:
         inline_keyboard_markup.inline_keyboard[0][1].callback_data = None
         inline_keyboard_markup.inline_keyboard[0][1].switch_inline_query_current_chat = ''
 
-        monkeypatch.setattr(bot, '_message', test)
+        monkeypatch.setattr(bot, '_send_message', make_assertion)
         await bot.send_message(123, 'test', reply_markup=inline_keyboard_markup)
 
     def test_to_dict(self, inline_keyboard_markup):

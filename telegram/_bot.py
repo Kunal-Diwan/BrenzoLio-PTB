@@ -93,15 +93,14 @@ from telegram import (
     WebhookInfo,
     InlineKeyboardMarkup,
     ChatInviteLink,
-    InputFile,
 )
 from telegram.error import InvalidToken, TelegramError
 from telegram.constants import InlineQueryLimit
-from telegram.request import BaseRequest
+from telegram.request import BaseRequest, RequestData
+from telegram.request._requestparameter import RequestParameter
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue, DEFAULT_20
-from telegram._utils.datetime import to_timestamp
 from telegram._utils.files import is_local_file, parse_file_input
-from telegram._utils.types import FileInput, JSONDict, ODVInput, DVInput, UploadFileDict
+from telegram._utils.types import FileInput, JSONDict, ODVInput, DVInput
 from telegram.request import HTTPXRequest
 
 if TYPE_CHECKING:
@@ -266,48 +265,19 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         return DefaultValue.get_value(timeout)
 
-    @classmethod
-    def _to_json_dumpable(cls, obj: object, files: UploadFileDict) -> Union[JSONDict, Any]:
-        """Converts `obj` into something that we can json-dump. If `obj` contains files to be
-        uploaded, they will be placed into the `files` dictionary and the corresponding
-        attach:// value will be returned.
-        Note that we use this for *all* files to be uploaded. This is not documented in the
-        official API, but has been comfirmed to be supported in the official Bot API repository.
-        See https://github.com/tdlib/telegram-bot-api/issues/167
-        """
-        if isinstance(obj, InputFile):
-            files[obj.attach_name] = obj.field_tuple
-            return obj.attach_uri
-        if isinstance(obj, InputMedia) and isinstance(obj.media, InputFile):
-            # We call to_dict and change the returned dict instead of overriding
-            # value.media in case the same object is reused for another request
-            data = obj.to_dict()
-            data['media'] = obj.media.attach_uri
-            files[obj.media.attach_name] = obj.media.field_tuple
-            return data
-        if isinstance(obj, TelegramObject):
-            return obj.to_dict()
-        if isinstance(obj, list):
-            # In case we send files, we need to json dump lists manually
-            # So let's just json dump this list …
-            return json.dumps([cls._to_json_dumpable(entry, files) for entry in obj])
-        return obj
-
+    # JSONDict = Dict[str, Any]
     async def _post(
         self,
-        endpoint: str,
-        data: JSONDict = None,
+        endpoint: str,  # 'sendMessage', 'sendPhoto', 'getMe'
+        data: JSONDict = None,  # {'chat_id': 123, 'text': 'Hello there!'}
         timeout: ODVInput[float] = DEFAULT_NONE,
-        api_kwargs: JSONDict = None,
+        api_kwargs: JSONDict = None,  # {'new_param': whatever}
     ) -> Union[bool, JSONDict, None]:
         if data is None:
             data = {}
 
         if api_kwargs:
-            if data:
-                data.update(api_kwargs)
-            else:
-                data = api_kwargs
+            data.update(api_kwargs)
 
         # Insert is in-place, so no return value for data
         if endpoint != 'getUpdates':
@@ -318,23 +288,20 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         # Drop any None values because Telegram doesn't handle them well
         data = {key: value for key, value in data.items() if value is not None}
 
-        # Convert data to something JSON-dumpable
-        files: UploadFileDict = {}
-        for key, value in data.items():
-            # We do this here so that _insert_defaults (see above) has a chance to convert
-            # to the default timezone in case this is called by ExtBot
-            if isinstance(value, datetime):
-                data[key] = to_timestamp(value)
-            data[key] = self._to_json_dumpable(value, files)
+        # This also converts datetimes into timestamps.
+        # We don't do this earlier so that _insert_defaults (see above) has a chance to convert
+        # to the default timezone in case this is called by ExtBot
+        request_data = RequestData(
+            [RequestParameter.from_input(key, value) for key, value in data.items()]
+        )
 
         return await self.request.post(
             f'{self.base_url}/{endpoint}',
-            data=data if data else None,
-            files=files if files else None,
+            request_data=request_data,
             timeout=effective_timeout,
         )
 
-    async def _message(
+    async def _send_message(
         self,
         endpoint: str,
         data: JSONDict,
@@ -518,11 +485,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if entities:
             data['entities'] = entities
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendMessage',
             data,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
             timeout=timeout,
@@ -615,7 +582,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if message_id:
             data['message_id'] = message_id
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'forwardMessage',
             data,
             disable_notification=disable_notification,
@@ -703,14 +670,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if caption_entities:
             data['caption_entities'] = caption_entities
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendPhoto',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -826,14 +793,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if thumb:
             data['thumb'] = parse_file_input(thumb)
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendAudio',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -937,14 +904,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if thumb:
             data['thumb'] = parse_file_input(thumb)
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendDocument',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1000,14 +967,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id, 'sticker': parse_file_input(sticker, Sticker)}
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendSticker',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1128,14 +1095,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if thumb:
             data['thumb'] = parse_file_input(thumb)
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendVideo',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1227,14 +1194,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if thumb:
             data['thumb'] = parse_file_input(thumb)
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendVideoNote',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1347,14 +1314,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if caption_entities:
             data['caption_entities'] = caption_entities
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendAnimation',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1447,14 +1414,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if caption_entities:
             data['caption_entities'] = caption_entities
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendVoice',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1596,14 +1563,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if proximity_alert_radius:
             data['proximity_alert_radius'] = proximity_alert_radius
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendLocation',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1689,11 +1656,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if proximity_alert_radius:
             data['proximity_alert_radius'] = proximity_alert_radius
 
-        return await self._message(
+        return await self._send_message(
             'editMessageLiveLocation',
             data,
-            timeout=timeout,
             reply_markup=reply_markup,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1739,11 +1706,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
 
-        return await self._message(
+        return await self._send_message(
             'stopMessageLiveLocation',
             data,
-            timeout=timeout,
             reply_markup=reply_markup,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1848,14 +1815,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if google_place_type:
             data['google_place_type'] = google_place_type
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendVenue',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1934,14 +1901,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if vcard:
             data['vcard'] = vcard
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendContact',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1987,14 +1954,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id, 'game_short_name': game_short_name}
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendGame',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2555,11 +2522,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if entities:
             data['entities'] = [me.to_dict() for me in entities]
 
-        return await self._message(
+        return await self._send_message(
             'editMessageText',
             data,
-            timeout=timeout,
             reply_markup=reply_markup,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2631,11 +2598,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
 
-        return await self._message(
+        return await self._send_message(
             'editMessageCaption',
             data,
-            timeout=timeout,
             reply_markup=reply_markup,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2697,11 +2664,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
 
-        return await self._message(
+        return await self._send_message(
             'editMessageMedia',
             data,
-            timeout=timeout,
             reply_markup=reply_markup,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2758,11 +2725,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if inline_message_id:
             data['inline_message_id'] = inline_message_id
 
-        return await self._message(
+        return await self._send_message(
             'editMessageReplyMarkup',
             data,
-            timeout=timeout,
             reply_markup=reply_markup,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -3283,11 +3250,8 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if disable_edit_message is not None:
             data['disable_edit_message'] = disable_edit_message
 
-        return await self._message(
-            'setGameScore',
-            data,
-            timeout=timeout,
-            api_kwargs=api_kwargs,
+        return await self._send_message(
+            'setGameScore', data, timeout=timeout, api_kwargs=api_kwargs
         )
 
     @_log
@@ -3513,14 +3477,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if send_email_to_provider is not None:
             data['send_email_to_provider'] = send_email_to_provider
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendInvoice',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -4850,14 +4814,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if close_date:
             data['close_date'] = close_date
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendPoll',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -4958,14 +4922,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if emoji:
             data['emoji'] = emoji
 
-        return await self._message(  # type: ignore[return-value]
+        return await self._send_message(  # type: ignore[return-value]
             'sendDice',
             data,
-            timeout=timeout,
-            disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
+            disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
+            timeout=timeout,
             api_kwargs=api_kwargs,
         )
 

@@ -22,6 +22,7 @@ from flaky import flaky
 
 from telegram import Contact, Voice
 from telegram.error import BadRequest
+from telegram.request import RequestData
 
 
 @pytest.fixture(scope='class')
@@ -68,13 +69,14 @@ class TestContact:
 
     @pytest.mark.asyncio
     async def test_send_with_contact(self, monkeypatch, bot, chat_id, contact):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             phone = data['phone_number'] == contact.phone_number
             first = data['first_name'] == contact.first_name
             last = data['last_name'] == contact.last_name
             return phone and first and last
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.send_contact(contact=contact, chat_id=chat_id)
         assert message
 

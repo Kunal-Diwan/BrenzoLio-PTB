@@ -65,7 +65,7 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TimedOut, RetryAfter
 from telegram._utils.defaultvalue import DefaultValue, DEFAULT_NONE
-from telegram.request import HTTPXRequest
+from telegram.request import HTTPXRequest, RequestData
 from tests.bots import get_bot
 
 
@@ -121,12 +121,13 @@ class TestHttpxRequest(HTTPXRequest):
         self,
         method: str,
         url: str,
-        json_data: Optional[JSONDict],
-        files: Dict[str, Tuple[str, bytes, str]],
+        request_data: RequestData = None,
         read_timeout: float = None,
     ) -> bytes:
         try:
-            return await super()._request_wrapper(method, url, json_data, files, read_timeout)
+            return await super()._request_wrapper(
+                method=method, url=url, request_data=request_data, read_timeout=read_timeout
+            )
         except RetryAfter as e:
             pytest.xfail(f'Not waiting for flood control: {e}')
         except TimedOut as e:
@@ -673,7 +674,9 @@ async def check_defaults_handling(
 
     expected_return_values = [None, []] if return_value is None else [return_value]
 
-    async def make_assertion(_, data, timeout=DEFAULT_NONE, df_value=DEFAULT_NONE):
+    async def make_assertion(url, request_data, timeout=DEFAULT_NONE, df_value=DEFAULT_NONE):
+        data = request_data.json_parameters
+
         # Check timeout first
         expected_timeout = method_timeout if df_value is DEFAULT_NONE else df_value
         if timeout != expected_timeout:

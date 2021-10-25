@@ -24,6 +24,7 @@ from flaky import flaky
 
 from telegram import VideoNote, Voice, PhotoSize, Bot
 from telegram.error import BadRequest, TelegramError
+from telegram.request import RequestData
 from tests.conftest import (
     check_shortcut_call,
     check_shortcut_signature,
@@ -108,8 +109,8 @@ class TestVideoNote:
     async def test_send_video_note_custom_filename(
         self, bot, chat_id, video_note_file, monkeypatch
     ):
-        async def make_assertion(url, data, **kwargs):
-            return data['video_note'].filename == 'custom_filename'
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
@@ -142,10 +143,10 @@ class TestVideoNote:
 
     @pytest.mark.asyncio
     async def test_send_with_video_note(self, monkeypatch, bot, chat_id, video_note):
-        async def test(url, data, **kwargs):
-            return data['video_note'] == video_note.file_id
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters['video_note'] == video_note.file_id
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.send_video_note(chat_id, video_note=video_note)
         assert message
 

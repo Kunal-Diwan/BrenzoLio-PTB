@@ -25,6 +25,7 @@ from flaky import flaky
 from telegram import Audio, Voice, MessageEntity, Bot
 from telegram.error import TelegramError
 from telegram.helpers import escape_markdown
+from telegram.request import RequestData
 from tests.conftest import (
     check_shortcut_call,
     check_shortcut_signature,
@@ -123,8 +124,8 @@ class TestAudio:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_audio_custom_filename(self, bot, chat_id, audio_file, monkeypatch):
-        async def make_assertion(url, data, **kwargs):
-            return data['audio'].filename == 'custom_filename'
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
@@ -175,10 +176,10 @@ class TestAudio:
 
     @pytest.mark.asyncio
     async def test_send_with_audio(self, monkeypatch, bot, chat_id, audio):
-        async def test(url, data, **kwargs):
-            return data['audio'] == audio.file_id
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters['audio'] == audio.file_id
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.send_audio(audio=audio, chat_id=chat_id)
         assert message
 

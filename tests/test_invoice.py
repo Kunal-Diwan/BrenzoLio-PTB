@@ -163,7 +163,7 @@ class TestInvoice:
                 and kwargs['is_flexible'] == 'is_flexible'
             )
 
-        monkeypatch.setattr(bot, '_message', make_assertion)
+        monkeypatch.setattr(bot, '_send_message', make_assertion)
         assert await bot.send_invoice(
             chat_id='chat_id',
             title='title',
@@ -191,11 +191,11 @@ class TestInvoice:
 
     @pytest.mark.asyncio
     async def test_send_object_as_provider_data(self, monkeypatch, bot, chat_id, provider_token):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             # depends on whether we're using ujson
             return data['provider_data'] in ['{"test_data": 123456789}', '{"test_data":123456789}']
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
 
         assert await bot.send_invoice(
             chat_id,

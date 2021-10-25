@@ -35,13 +35,12 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains methods to make POST and GET requests using the httpx library."""
 import logging
-from typing import Tuple, Optional, Union, Dict
+from typing import Tuple
 
 import httpx
 
-from telegram._utils.types import UploadFileDict, JSONDict
 from telegram.error import TimedOut, NetworkError
-from telegram.request import BaseRequest
+from telegram.request import BaseRequest, RequestData
 
 
 class HTTPXRequest(BaseRequest):
@@ -105,8 +104,7 @@ class HTTPXRequest(BaseRequest):
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
-        files: Optional[UploadFileDict],
+        request_data: RequestData = None,
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
@@ -122,27 +120,16 @@ class HTTPXRequest(BaseRequest):
         #          (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 8)
         # TODO p4: Support setsockopt on lesser platforms than Linux.
 
-        headers = {'User-Agent': self.user_agent}
-
-        kwargs: Dict[str, Union[bytes, JSONDict, UploadFileDict]] = {}
-        if files:
-            kwargs['files'] = files
-            if data:
-                kwargs['data'] = data
-        elif data:
-            # kwargs['json'] = json_data
-            kwargs['content'] = self.json_dump(data).encode()
-            headers['Content-Type'] = 'application/json'
-
+        files = request_data.multipart_data if request_data else None
+        data = request_data.json_parameters if request_data else None
         try:
             res = await self._client.request(
-                # TODO: check if we can remove the type: ignore - also depending on above comment
-                method,
-                # url='https://httpbin.org/post' if 'sendPhoto' in url else url,
-                url,
-                headers=headers,
+                method=method,
+                url=url,
+                headers={'User-Agent': self.user_agent},
                 timeout=timeout,
-                **kwargs,  # type: ignore[arg-type]
+                files=files,
+                data=data,
             )
         except httpx.TimeoutException as err:
             raise TimedOut() from err

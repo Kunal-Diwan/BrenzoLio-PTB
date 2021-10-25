@@ -25,6 +25,7 @@ from flaky import flaky
 
 from telegram import Sticker, PhotoSize, StickerSet, Audio, MaskPosition, Bot
 from telegram.error import BadRequest, TelegramError
+from telegram.request import RequestData
 from tests.conftest import (
     check_shortcut_call,
     check_shortcut_signature,
@@ -214,10 +215,10 @@ class TestSticker:
 
     @pytest.mark.asyncio
     async def test_send_with_sticker(self, monkeypatch, bot, chat_id, sticker):
-        async def test(url, data, **kwargs):
-            return data['sticker'] == sticker.file_id
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters['sticker'] == sticker.file_id
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.send_sticker(sticker=sticker, chat_id=chat_id)
         assert message
 

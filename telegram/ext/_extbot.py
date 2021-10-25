@@ -248,7 +248,7 @@ class ExtBot(Bot):
 
         return obj
 
-    async def _message(
+    async def _send_message(
         self,
         endpoint: str,
         data: JSONDict,
@@ -261,7 +261,7 @@ class ExtBot(Bot):
     ) -> Union[bool, Message]:
         # We override this method to call self._replace_keyboard and self._insert_callback_data.
         # This covers most methods that have a reply_markup
-        result = await super()._message(
+        result = await super()._send_message(
             endpoint=endpoint,
             data=data,
             reply_to_message_id=reply_to_message_id,

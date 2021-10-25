@@ -33,6 +33,7 @@ from telegram.constants import ParseMode
 
 # noinspection PyUnresolvedReferences
 from telegram.error import BadRequest
+from telegram.request import RequestData
 from .test_animation import animation, animation_file  # noqa: F401
 
 # noinspection PyUnresolvedReferences
@@ -470,7 +471,7 @@ class TestSendMediaGroup:
         video_file,  # noqa: F811
         monkeypatch,
     ):
-        async def make_assertion(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             result = all(im.media.filename == 'custom_filename' for im in data['media'])
             # We are a bit hacky here b/c Bot.send_media_group expects a list of Message-dicts
             return [Message(0, None, None, text=result).to_dict()]

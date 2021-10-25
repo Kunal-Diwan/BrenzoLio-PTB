@@ -59,6 +59,7 @@ from telegram.error import BadRequest, InvalidToken, NetworkError, RetryAfter, T
 from telegram._utils.datetime import from_timestamp, to_timestamp
 from telegram._utils.defaultvalue import DefaultValue
 from telegram.helpers import escape_markdown
+from telegram.request import RequestData
 from tests.conftest import (
     expect_bad_request,
     check_defaults_handling,
@@ -205,8 +206,9 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_unknown_kwargs(self, bot, monkeypatch):
-        async def post(url, data, timeout):
-            if not all([data['unknown_kwarg_1'] == 7, data['unknown_kwarg_2'] == 5]):
+        async def post(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
+            if not all([data['unknown_kwarg_1'] == '7', data['unknown_kwarg_2'] == '5']):
                 pytest.fail('got wrong parameters')
             return True
 
@@ -312,7 +314,9 @@ class TestBot:
             # check that tg.Bot does the right thing
             # make_assertion basically checks everything that happens in
             # Bot._insert_defaults and Bot._insert_defaults_for_ilq_results
-            async def make_assertion(_, json_data, timeout=None):
+            async def make_assertion(url, request_data: RequestData, timeout=None):
+                json_data = request_data.json_parameters
+
                 # Check regular kwargs
                 for k, v in json_data.items():
                     if isinstance(v, DefaultValue):
@@ -858,7 +862,7 @@ class TestBot:
                 'switch_pm_text': 'switch pm',
             }
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         results = [
             InlineQueryResultArticle('11', 'first', InputTextMessageContent('first')),
             InlineQueryResultArticle('12', 'second', InputTextMessageContent('second')),
@@ -899,7 +903,7 @@ class TestBot:
                 'switch_pm_text': 'switch pm',
             }
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         results = [
             InlineQueryResultDocument(
                 id='123',
@@ -996,7 +1000,8 @@ class TestBot:
         expected_next_offset,
     ):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             results = data['results']
             length_matches = len(results) == num_results
             ids_match = all(int(res['id']) == id_offset + i for i, res in enumerate(results))
@@ -1012,7 +1017,8 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_inline_query_current_offset_2(self, monkeypatch, bot, inline_results):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             results = data['results']
             length_matches = len(results) == InlineQueryLimit.RESULTS
             ids_match = all(int(res['id']) == 1 + i for i, res in enumerate(results))
@@ -1025,7 +1031,8 @@ class TestBot:
 
         inline_results = inline_results[:30]
 
-        async def make_assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             results = data['results']
             length_matches = len(results) == 30
             ids_match = all(int(res['id']) == 1 + i for i, res in enumerate(results))
@@ -1039,7 +1046,8 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_inline_query_current_offset_callback(self, monkeypatch, bot, caplog):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             results = data['results']
             length = len(results) == 5
             ids = all(int(res['id']) == 6 + i for i, res in enumerate(results))
@@ -1052,7 +1060,8 @@ class TestBot:
             1234, results=inline_results_callback, current_offset=1
         )
 
-        async def make_assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             results = data['results']
             length = results == []
             next_offset = data['next_offset'] == ''
@@ -1108,7 +1117,7 @@ class TestBot:
             revoke_msgs = data.get('revoke_messages', True) is True
             return chat_id and user_id and until_date and revoke_msgs
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         until = from_timestamp(1577887200)
 
         assert await bot.ban_chat_member(2, 32)
@@ -1138,7 +1147,8 @@ class TestBot:
     @pytest.mark.parametrize('only_if_banned', [True, False, None])
     @pytest.mark.asyncio
     async def test_unban_chat_member(self, monkeypatch, bot, only_if_banned):
-        async def make_assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             chat_id = data['chat_id'] == 2
             user_id = data['user_id'] == 32
             o_i_b = data.get('only_if_banned', None) == only_if_banned
@@ -1150,32 +1160,34 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_set_chat_permissions(self, monkeypatch, bot, chat_permissions):
-        async def test(url, data, *args, **kwargs):
-            chat_id = data['chat_id'] == 2
-            permissions = data['permissions'] == chat_permissions.to_dict()
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
+            chat_id = data['chat_id'] == '2'
+            permissions = data['permissions'] == chat_permissions.to_json()
             return chat_id and permissions
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
 
         assert await bot.set_chat_permissions(2, chat_permissions)
 
     @pytest.mark.asyncio
     async def test_set_chat_administrator_custom_title(self, monkeypatch, bot):
-        async def test(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             chat_id = data['chat_id'] == 2
             user_id = data['user_id'] == 32
             custom_title = data['custom_title'] == 'custom_title'
             return chat_id and user_id and custom_title
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.set_chat_administrator_custom_title(2, 32, 'custom_title')
 
     # TODO: Needs improvement. Need an incoming callbackquery to test
     @pytest.mark.asyncio
     async def test_answer_callback_query(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def test(url, data, *args, **kwargs):
-            return data == {
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
                 'callback_query_id': 23,
                 'show_alert': True,
                 'url': 'no_url',
@@ -1183,7 +1195,7 @@ class TestBot:
                 'text': 'answer',
             }
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
 
         assert await bot.answer_callback_query(
             23, text='answer', show_alert=True, url='no_url', cache_time=1
@@ -1457,10 +1469,11 @@ class TestBot:
     async def test_set_webhook_delete_webhook_drop_pending_updates(
         self, bot, drop_pending_updates, monkeypatch
     ):
-        async def assertion(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             return bool(data.get('drop_pending_updates')) == drop_pending_updates
 
-        monkeypatch.setattr(bot.request, 'post', assertion)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
 
         assert await bot.set_webhook('', drop_pending_updates=drop_pending_updates)
         assert await bot.delete_webhook(drop_pending_updates=drop_pending_updates)
@@ -1673,8 +1686,8 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_shipping_query_ok(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def test(url, data, *args, **kwargs):
-            return data == {
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
                 'shipping_query_id': 1,
                 'ok': True,
                 'shipping_options': [
@@ -1682,21 +1695,21 @@ class TestBot:
                 ],
             }
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         shipping_options = ShippingOption(1, 'option1', [LabeledPrice('price', 100)])
         assert await bot.answer_shipping_query(1, True, shipping_options=[shipping_options])
 
     @pytest.mark.asyncio
     async def test_answer_shipping_query_error_message(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def test(url, data, *args, **kwargs):
-            return data == {
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
                 'shipping_query_id': 1,
                 'error_message': 'Not enough fish',
                 'ok': False,
             }
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.answer_shipping_query(1, False, error_message='Not enough fish')
 
     @pytest.mark.asyncio
@@ -1722,23 +1735,23 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_pre_checkout_query_ok(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def test(url, data, *args, **kwargs):
-            return data == {'pre_checkout_query_id': 1, 'ok': True}
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {'pre_checkout_query_id': 1, 'ok': True}
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.answer_pre_checkout_query(1, True)
 
     @pytest.mark.asyncio
     async def test_answer_pre_checkout_query_error_message(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def test(url, data, *args, **kwargs):
-            return data == {
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
                 'pre_checkout_query_id': 1,
                 'error_message': 'Not enough fish',
                 'ok': False,
             }
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.answer_pre_checkout_query(1, False, error_message='Not enough fish')
 
     @pytest.mark.asyncio
@@ -2043,7 +2056,6 @@ class TestBot:
 
         async def do_request(*args, **kwargs):
             obj = kwargs.get('read_timeout')
-            print(obj, type(obj))
             if obj == 20:
                 raise OkException
 

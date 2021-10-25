@@ -20,7 +20,7 @@
 import abc
 from pathlib import Path
 from types import TracebackType
-from typing import Union, Optional, Tuple, Type
+from typing import Union, Tuple, Type
 
 try:
     import ujson as json
@@ -28,8 +28,8 @@ except ImportError:
     import json  # type: ignore[no-redef]
 
 from telegram._version import __version__ as ptb_ver
+from telegram.request import RequestData
 
-# pylint: disable=ungrouped-imports
 from telegram.error import (
     TelegramError,
     BadRequest,
@@ -40,7 +40,7 @@ from telegram.error import (
     RetryAfter,
     Unauthorized,
 )
-from telegram._utils.types import JSONDict, FilePathInput, UploadFileDict
+from telegram._utils.types import JSONDict, FilePathInput
 
 
 class BaseRequest(abc.ABC):
@@ -78,17 +78,14 @@ class BaseRequest(abc.ABC):
     async def post(
         self,
         url: str,
-        data: Optional[JSONDict],
-        files: Optional[UploadFileDict],
+        request_data: RequestData = None,
         timeout: float = None,
     ) -> Union[JSONDict, bool]:
         """Request an URL.
 
         Args:
             url (:obj:`str`): The web location we want to retrieve.
-            data (:obj:`str`, optional): The JSON data.
-            files (Dict[:obj:`str`, Tuple[:obj:`str`, :obj:`bytes`, :obj:`str`], optional):
-                Files to be attached to the request.
+            request_data
             timeout (:obj:`int` | :obj:`float`, optional): If this value is specified, use it as
                 the read timeout from the server (instead of the one specified during creation of
                 the connection pool).
@@ -98,7 +95,7 @@ class BaseRequest(abc.ABC):
 
         """
         result = await self._request_wrapper(
-            method='POST', url=url, data=data, files=files, read_timeout=timeout
+            method='POST', url=url, request_data=request_data, read_timeout=timeout
         )
         return self._parse(result)
 
@@ -115,7 +112,7 @@ class BaseRequest(abc.ABC):
             TelegramError
 
         """
-        return await self._request_wrapper('GET', url, None, {}, read_timeout=timeout)
+        return await self._request_wrapper(method='GET', url=url, read_timeout=timeout)
 
     async def download(self, url: str, filepath: FilePathInput, timeout: float = None) -> None:
         """Download a file from the given ``url`` and save it to ``filename``.
@@ -140,8 +137,7 @@ class BaseRequest(abc.ABC):
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
-        files: Optional[UploadFileDict],
+        request_data: RequestData = None,
         read_timeout: float = None,
     ) -> bytes:
         """Wraps the real implementation request method.
@@ -153,9 +149,7 @@ class BaseRequest(abc.ABC):
         Args:
             method: HTTP method (i.e. 'POST', 'GET', etc.).
             url: The request's URL.
-            data: Data to send over as the request's payload.
-            files: Files to upload as multi-form. Key is the form field name. Value is the file to
-                   upload (filename, file-content, content-type).
+            request_data
             read_timeout: Timeout for waiting to server's response.
 
         Returns:
@@ -167,7 +161,7 @@ class BaseRequest(abc.ABC):
         """
         try:
             code, payload = await self.do_request(
-                method, url, data, files, read_timeout=read_timeout
+                method, url, request_data=request_data, read_timeout=read_timeout
             )
         except TelegramError:
             raise
@@ -240,8 +234,7 @@ class BaseRequest(abc.ABC):
         self,
         method: str,
         url: str,
-        data: Optional[JSONDict],
-        files: Optional[UploadFileDict],
+        request_data: RequestData = None,
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
@@ -250,9 +243,7 @@ class BaseRequest(abc.ABC):
         Args:
             method: HTTP method (i.e. 'POST', 'GET', etc.).
             url: The request's URL.
-            data: Data to send over as the request's payload.
-            files: Files to upload as multi-form. Key is the form field name. Value is the file to
-                   upload (filename, file-content, content-type).
+            request_data
             read_timeout: Timeout for waiting to server's response.
             write_timeout: Timeout for sending data to the server.
 

@@ -21,6 +21,7 @@ from flaky import flaky
 
 from telegram import Location
 from telegram.error import BadRequest
+from telegram.request import RequestData
 
 
 @pytest.fixture(scope='class')
@@ -112,7 +113,8 @@ class TestLocation:
     # TODO: Needs improvement with in inline sent live location.
     @pytest.mark.asyncio
     async def test_edit_live_inline_message(self, monkeypatch, bot, location):
-        async def make_assertion(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             lat = data['latitude'] == location.latitude
             lon = data['longitude'] == location.longitude
             id_ = data['inline_message_id'] == 1234
@@ -133,21 +135,21 @@ class TestLocation:
     # TODO: Needs improvement with in inline sent live location.
     @pytest.mark.asyncio
     async def test_stop_live_inline_message(self, monkeypatch, bot):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             id_ = data['inline_message_id'] == 1234
             return id_
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.stop_message_live_location(inline_message_id=1234)
 
     @pytest.mark.asyncio
     async def test_send_with_location(self, monkeypatch, bot, chat_id, location):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             lat = data['latitude'] == location.latitude
             lon = data['longitude'] == location.longitude
             return lat and lon
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.send_location(location=location, chat_id=chat_id)
 
     @flaky(3, 1)
@@ -187,12 +189,12 @@ class TestLocation:
 
     @pytest.mark.asyncio
     async def test_edit_live_location_with_location(self, monkeypatch, bot, location):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             lat = data['latitude'] == location.latitude
             lon = data['longitude'] == location.longitude
             return lat and lon
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         assert await bot.edit_message_live_location(None, None, location=location)
 
     @pytest.mark.asyncio

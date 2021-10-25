@@ -25,6 +25,7 @@ from flaky import flaky
 from telegram import PhotoSize, Animation, Voice, MessageEntity, Bot
 from telegram.error import BadRequest, TelegramError
 from telegram.helpers import escape_markdown
+from telegram.request import RequestData
 from tests.conftest import (
     check_shortcut_call,
     check_shortcut_signature,
@@ -111,8 +112,8 @@ class TestAnimation:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_animation_custom_filename(self, bot, chat_id, animation_file, monkeypatch):
-        async def make_assertion(url, data, **kwargs):
-            return data['animation'].filename == 'custom_filename'
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
@@ -269,10 +270,10 @@ class TestAnimation:
 
     @pytest.mark.asyncio
     async def test_send_with_animation(self, monkeypatch, bot, chat_id, animation):
-        async def test(url, data, **kwargs):
-            return data['animation'] == animation.file_id
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters['animation'] == animation.file_id
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.send_animation(animation=animation, chat_id=chat_id)
         assert message
 

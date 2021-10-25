@@ -21,6 +21,7 @@ from flaky import flaky
 
 from telegram import Location, Venue
 from telegram.error import BadRequest
+from telegram.request import RequestData
 
 
 @pytest.fixture(scope='class')
@@ -72,7 +73,8 @@ class TestVenue:
 
     @pytest.mark.asyncio
     async def test_send_with_venue(self, monkeypatch, bot, chat_id, venue):
-        async def test(url, data, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             return (
                 data['longitude'] == self.location.longitude
                 and data['latitude'] == self.location.latitude
@@ -84,7 +86,7 @@ class TestVenue:
                 and data['google_place_type'] == self.google_place_type
             )
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.send_venue(chat_id, venue=venue)
         assert message
 

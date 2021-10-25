@@ -25,6 +25,7 @@ from flaky import flaky
 
 from telegram import ChatPhoto, Voice, Bot
 from telegram.error import TelegramError
+from telegram.request import RequestData
 from tests.conftest import (
     expect_bad_request,
     check_shortcut_call,
@@ -98,10 +99,10 @@ class TestChatPhoto:
 
     @pytest.mark.asyncio
     async def test_send_with_chat_photo(self, monkeypatch, bot, super_group_id, chat_photo):
-        async def test(url, data, **kwargs):
-            return data['photo'] == chat_photo
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters['photo'] == chat_photo
 
-        monkeypatch.setattr(bot.request, 'post', test)
+        monkeypatch.setattr(bot.request, 'post', make_assertion)
         message = await bot.set_chat_photo(photo=chat_photo, chat_id=super_group_id)
         assert message
 

@@ -23,8 +23,10 @@ import imghdr
 import logging
 import mimetypes
 from pathlib import Path
-from typing import IO, Optional, Tuple, Union
+from typing import IO, Optional, Union
 from uuid import uuid4
+
+from telegram._utils.types import FieldTuple
 
 _DEFAULT_MIME_TYPE = 'application/octet-stream'
 logger = logging.getLogger(__name__)
@@ -76,7 +78,7 @@ class InputFile:
             self.filename = self.mimetype.replace('/', '.')
 
     @property
-    def field_tuple(self) -> Tuple[str, bytes, str]:  # skipcq: PY-D0003
+    def field_tuple(self) -> FieldTuple:  # skipcq: PY-D0003
         return self.filename, self.input_file_content, self.mimetype
 
     @staticmethod

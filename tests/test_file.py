@@ -103,7 +103,7 @@ class TestFile:
         async def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr(file.bot.request, 'retrieve', test)
+        monkeypatch.setattr(file.get_bot().request, 'retrieve', test)
         out_file = await file.download()
 
         try:
@@ -123,7 +123,7 @@ class TestFile:
         async def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr(file.bot.request, 'retrieve', test)
+        monkeypatch.setattr(file.get_bot().request, 'retrieve', test)
         file_handle, custom_path = mkstemp()
         custom_path = Path(custom_path)
         try:
@@ -156,7 +156,7 @@ class TestFile:
 
         file.file_path = None
 
-        monkeypatch.setattr(file.bot.request, 'retrieve', test)
+        monkeypatch.setattr(file.get_bot().request, 'retrieve', test)
         out_file = await file.download()
 
         assert str(out_file)[-len(file.file_id) :] == file.file_id
@@ -170,7 +170,7 @@ class TestFile:
         async def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr(file.bot.request, 'retrieve', test)
+        monkeypatch.setattr(file.get_bot().request, 'retrieve', test)
         with TemporaryFile() as custom_fobj:
             out_fobj = await file.download(out=custom_fobj)
             assert out_fobj is custom_fobj
@@ -192,7 +192,7 @@ class TestFile:
         async def test(*args, **kwargs):
             return self.file_content
 
-        monkeypatch.setattr(file.bot.request, 'retrieve', test)
+        monkeypatch.setattr(file.get_bot().request, 'retrieve', test)
 
         # Check that a download to a newly allocated bytearray works.
         buf = await file.download_as_bytearray()
