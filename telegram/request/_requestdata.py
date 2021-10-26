@@ -18,7 +18,7 @@
 #  along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains an class that holds a parameters of a request to the Bot API."""
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from urllib.parse import urlencode
 
 from telegram._utils.types import UploadFileDict
@@ -55,6 +55,14 @@ class RequestData:
     ):
         self._parameters = parameters or []
         self.contains_files = any(param.input_files for param in self._parameters)
+
+    @property
+    def parameters(self) -> Dict[str, Union[str, int, List, Dict]]:
+        """Gives the parameters as mapping of parameter name to the parameter value, which can be
+        a single object of type :obj:`int`, :obj:`float`, :obj:`str` or :obj:`bool` or any
+        (possibly nested) composition of lists, tuples and dictionaries, where each entry, key
+        and value is of one of the mentioned types."""
+        return {param.name: param.value for param in self._parameters}  # type: ignore[misc]
 
     @property
     def json_parameters(self) -> Dict[str, str]:

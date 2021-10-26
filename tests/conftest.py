@@ -28,7 +28,7 @@ from pathlib import Path
 from queue import Queue
 from threading import Thread, Event
 from time import sleep
-from typing import Callable, List, Iterable, Any, Optional, Dict, Tuple
+from typing import Callable, List, Iterable, Any, Dict
 
 import pytest
 import pytz
@@ -51,9 +51,8 @@ from telegram import (
     InputTextMessageContent,
     InlineQueryResultCachedPhoto,
     InputMediaPhoto,
-    InputMedia,
 )
-from telegram._utils.types import JSONDict
+from telegram.constants import InputMediaType
 from telegram.ext import (
     Dispatcher,
     MessageFilter,
@@ -674,8 +673,10 @@ async def check_defaults_handling(
 
     expected_return_values = [None, []] if return_value is None else [return_value]
 
-    async def make_assertion(url, request_data, timeout=DEFAULT_NONE, df_value=DEFAULT_NONE):
-        data = request_data.json_parameters
+    async def make_assertion(
+        url, request_data: RequestData, timeout=DEFAULT_NONE, df_value=DEFAULT_NONE
+    ):
+        data = request_data.parameters
 
         # Check timeout first
         expected_timeout = method_timeout if df_value is DEFAULT_NONE else df_value
@@ -696,8 +697,8 @@ async def check_defaults_handling(
                     pytest.fail(f'Got value {value} for argument {arg} instead of {df_value}')
 
         # Check InputMedia (parse_mode can have a default)
-        def check_input_media(m: InputMedia):
-            parse_mode = m.parse_mode
+        def check_input_media(m: Dict):
+            parse_mode = m.get('parse_mode', None)
             if df_value is DEFAULT_NONE:
                 if parse_mode is not None:
                     pytest.fail('InputMedia has non-None parse_mode')
@@ -708,7 +709,7 @@ async def check_defaults_handling(
 
         media = data.pop('media', None)
         if media:
-            if isinstance(media, InputMedia):
+            if isinstance(media, dict) and isinstance(media.get('type', None), InputMediaType):
                 check_input_media(media)
             else:
                 for m in media:

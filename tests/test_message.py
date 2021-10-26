@@ -1198,8 +1198,8 @@ class TestMessage:
         assert check_shortcut_signature(
             Message.copy, Bot.copy_message, ['from_chat_id', 'message_id'], []
         )
-        assert await check_shortcut_call(message.copy, message.bot, 'copy_message')
-        assert await check_defaults_handling(message.copy, message.bot)
+        assert await check_shortcut_call(message.copy, message.get_bot(), 'copy_message')
+        assert await check_defaults_handling(message.copy, message.get_bot())
 
         monkeypatch.setattr(message.get_bot(), 'copy_message', make_assertion)
         assert await message.copy(123456, disable_notification=disable_notification)

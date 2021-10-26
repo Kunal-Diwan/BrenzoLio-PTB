@@ -333,7 +333,7 @@ async def sticker_set(bot):
     if len(ss.stickers) > 100:
         try:
             for i in range(1, 50):
-                bot.delete_sticker_from_set(ss.stickers[-i].file_id)
+                await bot.delete_sticker_from_set(ss.stickers[-i].file_id)
         except BadRequest as e:
             if e.message == 'Stickerset_not_modified':
                 return ss

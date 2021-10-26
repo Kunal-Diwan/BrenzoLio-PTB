@@ -472,9 +472,12 @@ class TestSendMediaGroup:
         monkeypatch,
     ):
         async def make_assertion(url, request_data: RequestData, timeout):
-            result = all(im.media.filename == 'custom_filename' for im in data['media'])
-            # We are a bit hacky here b/c Bot.send_media_group expects a list of Message-dicts
-            return [Message(0, None, None, text=result).to_dict()]
+            result = all(
+                field_tuple[0] == 'custom_filename'
+                for field_tuple in request_data.multipart_data.values()
+            )
+            if result is True:
+                raise Exception('Test was successful')
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 
@@ -485,20 +488,21 @@ class TestSendMediaGroup:
             InputMediaVideo(video_file, filename='custom_filename'),
         ]
 
-        assert (await bot.send_media_group(chat_id, media))[0].text is True
+        with pytest.raises(Exception, match='Test was successful'):
+            await bot.send_media_group(chat_id, media)
 
     @pytest.mark.asyncio
     async def test_send_media_group_with_thumbs(
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
-        async def test(*args, **kwargs):
-            data = kwargs['files']
-            video_check = data[input_video.media.attach] == input_video.media.field_tuple
-            thumb_check = data[input_video.thumb.attach] == input_video.thumb.field_tuple
+        async def make_assertion(method, url, request_data: RequestData, read_timeout):
+            files = request_data.multipart_data
+            video_check = files[input_video.media.attach_name] == input_video.media.field_tuple
+            thumb_check = files[input_video.thumb.attach_name] == input_video.thumb.field_tuple
             result = video_check and thumb_check
             raise Exception(f"Test was {'successful' if result else 'failing'}")
 
-        monkeypatch.setattr(bot.request, '_request_wrapper', test)
+        monkeypatch.setattr(bot.request, '_request_wrapper', make_assertion)
         input_video = InputMediaVideo(video_file, thumb=photo_file)
         with pytest.raises(Exception, match='Test was successful'):
             await bot.send_media_group(chat_id, [input_video, input_video])
@@ -593,14 +597,19 @@ class TestSendMediaGroup:
     async def test_edit_message_media_with_thumb(
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
-        async def test(*args, **kwargs):
-            data = kwargs['files']
-            video_check = data[input_video.media.attach] == input_video.media.field_tuple
-            thumb_check = data[input_video.thumb.attach] == input_video.thumb.field_tuple
+        async def make_assertion(
+            method: str,
+            url: str,
+            request_data: RequestData = None,
+            read_timeout: float = None,
+        ):
+            files = request_data.multipart_data
+            video_check = files[input_video.media.attach_name] == input_video.media.field_tuple
+            thumb_check = files[input_video.thumb.attach_name] == input_video.thumb.field_tuple
             result = video_check and thumb_check
             raise Exception(f"Test was {'successful' if result else 'failing'}")
 
-        monkeypatch.setattr(bot.request, '_request_wrapper', test)
+        monkeypatch.setattr(bot.request, '_request_wrapper', make_assertion)
         input_video = InputMediaVideo(video_file, thumb=photo_file)
         with pytest.raises(Exception, match='Test was successful'):
             await bot.edit_message_media(chat_id=chat_id, message_id=123, media=input_video)

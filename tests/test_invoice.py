@@ -146,7 +146,7 @@ class TestInvoice:
                 and kwargs['payload'] == 'payload'
                 and kwargs['provider_token'] == 'provider_token'
                 and kwargs['currency'] == 'currency'
-                and kwargs['prices'] == [p.to_dict() for p in self.prices]
+                and kwargs['prices'] == self.prices
                 and kwargs['max_tip_amount'] == 'max_tip_amount'
                 and kwargs['suggested_tip_amounts'] == 'suggested_tip_amounts'
                 and kwargs['start_parameter'] == 'start_parameter'

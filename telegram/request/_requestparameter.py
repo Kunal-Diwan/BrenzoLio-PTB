@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU Lesser Public License
 #  along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains an class that describes a single parameter of a request to the Bot API."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional, List, Tuple
@@ -78,7 +78,9 @@ class RequestParameter:
         return {input_file.attach_name: input_file.field_tuple for input_file in self.input_files}
 
     @staticmethod
-    def _value_and_input_file_from_input(value: object) -> Tuple[object, Optional[InputFile]]:
+    def _value_and_input_file_from_input(  # pylint: disable=too-many-return-statements
+        value: object,
+    ) -> Tuple[object, List[InputFile]]:
         """Converts `value` into something that we can json-dump. If `value` contains a file to be
         uploaded, it will be returned as second return value and the corresponding attach:// value
         will be returned as first return value.
@@ -87,21 +89,29 @@ class RequestParameter:
         See https://github.com/tdlib/telegram-bot-api/issues/167
         """
         if isinstance(value, datetime):
-            return to_timestamp(value), None
+            return to_timestamp(value), []
         if isinstance(value, Enum):
-            return value.value, None
+            return value.value, []
         if isinstance(value, InputFile):
-            return value.attach_uri, value
+            return value.attach_uri, [
+                value,
+            ]
         if isinstance(value, InputMedia) and isinstance(value.media, InputFile):
             # We call to_dict and change the returned dict instead of overriding
             # value.media in case the same value is reused for another request
             data = value.to_dict()
             data['media'] = value.media.attach_uri
-            return data, value.media
+
+            thumb = data.get('thumb', None)
+            if isinstance(thumb, InputFile):
+                data['thumb'] = thumb.attach_uri
+                return data, [value.media, thumb]
+
+            return data, [value.media]
         if isinstance(value, TelegramObject):
             # Needs to be last, because InputMedia is a subclass of TelegramObject
-            return value.to_dict(), None
-        return value, None
+            return value.to_dict(), []
+        return value, []
 
     @classmethod
     def from_input(cls, key: str, value: object) -> 'RequestParameter':
@@ -113,11 +123,12 @@ class RequestParameter:
             for obj in value:
                 param_value, input_file = cls._value_and_input_file_from_input(obj)
                 param_values.append(param_value)
-                if input_file:
-                    input_files.append(input_file)
-            return RequestParameter(name=key, value=param_values, input_files=input_files)
+                input_files.extend(input_file)
+            return RequestParameter(
+                name=key, value=param_values, input_files=input_files if input_files else None
+            )
 
-        param_value, input_file = cls._value_and_input_file_from_input(value)
+        param_value, input_files = cls._value_and_input_file_from_input(value)
         return RequestParameter(
-            name=key, value=param_value, input_files=[input_file] if input_file else None
+            name=key, value=param_value, input_files=input_files if input_files else None
         )
