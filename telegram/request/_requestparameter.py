@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU Lesser Public License
 #  along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains an class that describes a single parameter of a request to the Bot API."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Optional, List, Tuple
@@ -53,13 +53,15 @@ class RequestParameter:
     Attributes:
         name (:obj:`str`): The name of the parameter.
         value (:obj:`object`): The value of the parameter.
-        input_files (List[:class:`telegram.InputFile`): Optional. A list of files that should be
-            uploaded along with this parameter.
+        input_files (List[:class:`telegram.InputFile` | :obj:`None`): A list of files that should
+            be uploaded along with this parameter.
     """
+
+    __slots__ = ('name', 'value', 'input_files')
 
     name: str
     value: object
-    input_files: Optional[List[InputFile]] = None
+    input_files: Optional[List[InputFile]]
 
     @property
     def json_value(self) -> str:

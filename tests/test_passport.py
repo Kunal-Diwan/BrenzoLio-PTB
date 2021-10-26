@@ -35,6 +35,7 @@ from telegram.error import PassportDecryptionError
 # Note: All classes in telegram.credentials (except EncryptedCredentials) aren't directly tested
 # here, although they are implicitly tested. Testing for those classes was too much work and not
 # worth it.
+from telegram.request import RequestData
 
 RAW_PASSPORT_DATA = {
     'credentials': {
@@ -472,14 +473,15 @@ class TestPassport:
     @pytest.mark.asyncio
     async def test_mocked_set_passport_data_errors(self, monkeypatch, bot, chat_id, passport_data):
         async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
             return (
-                data['user_id'] == chat_id
+                data['user_id'] == str(chat_id)
                 and data['errors'][0]['file_hash']
                 == (
                     passport_data.decrypted_credentials.secure_data.driver_license.selfie.file_hash
                 )
                 and data['errors'][1]['data_hash']
-                == (passport_data.decrypted_credentials.secure_data.driver_license.data.data_hash)
+                == passport_data.decrypted_credentials.secure_data.driver_license.data.data_hash
             )
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

@@ -21,6 +21,7 @@ from flaky import flaky
 
 from telegram import LabeledPrice, Invoice
 from telegram.error import BadRequest
+from telegram.request import RequestData
 
 
 @pytest.fixture(scope='class')
@@ -193,7 +194,10 @@ class TestInvoice:
     async def test_send_object_as_provider_data(self, monkeypatch, bot, chat_id, provider_token):
         async def make_assertion(url, request_data: RequestData, timeout):
             # depends on whether we're using ujson
-            return data['provider_data'] in ['{"test_data": 123456789}', '{"test_data":123456789}']
+            return request_data.json_parameters['provider_data'] in [
+                '{"test_data": 123456789}',
+                '{"test_data":123456789}',
+            ]
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
 

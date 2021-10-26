@@ -838,9 +838,9 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_inline_query(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def test(url, data, *args, **kwargs):
-            return data == {
-                'cache_time': 300,
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
+                'cache_time': '300',
                 'results': [
                     {
                         'title': 'first',
@@ -857,7 +857,7 @@ class TestBot:
                 ],
                 'next_offset': '42',
                 'switch_pm_parameter': 'start_pm',
-                'inline_query_id': 1234,
+                'inline_query_id': '1234',
                 'is_personal': True,
                 'switch_pm_text': 'switch pm',
             }
@@ -881,8 +881,8 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_answer_inline_query_no_default_parse_mode(self, monkeypatch, bot):
-        async def test(url, data, *args, **kwargs):
-            return data == {
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
                 'cache_time': 300,
                 'results': [
                     {
@@ -928,9 +928,9 @@ class TestBot:
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_answer_inline_query_default_parse_mode(self, monkeypatch, default_bot):
-        async def test(url, data, *args, **kwargs):
-            return data == {
-                'cache_time': 300,
+        async def make_assertion(url, request_data: RequestData, timeout):
+            return request_data.json_parameters == {
+                'cache_time': '300',
                 'results': [
                     {
                         'title': 'test_result',
@@ -946,12 +946,12 @@ class TestBot:
                 ],
                 'next_offset': '42',
                 'switch_pm_parameter': 'start_pm',
-                'inline_query_id': 1234,
+                'inline_query_id': '1234',
                 'is_personal': True,
                 'switch_pm_text': 'switch pm',
             }
 
-        monkeypatch.setattr(default_bot.request, 'post', test)
+        monkeypatch.setattr(default_bot.request, 'post', make_assertion)
         results = [
             InlineQueryResultDocument(
                 id='123',
@@ -1110,11 +1110,12 @@ class TestBot:
     # TODO: Needs improvement. No feasible way to test until bots can add members.
     @pytest.mark.asyncio
     async def test_ban_chat_member(self, monkeypatch, bot):
-        async def test(url, data, *args, **kwargs):
-            chat_id = data['chat_id'] == 2
-            user_id = data['user_id'] == 32
-            until_date = data.get('until_date', 1577887200) == 1577887200
-            revoke_msgs = data.get('revoke_messages', True) is True
+        async def make_assertion(url, request_data: RequestData, timeout):
+            data = request_data.json_parameters
+            chat_id = data['chat_id'] == '2'
+            user_id = data['user_id'] == '32'
+            until_date = data.get('until_date', '1577887200') == '1577887200'
+            revoke_msgs = data.get('revoke_messages', 'true') == 'true'
             return chat_id and user_id and until_date and revoke_msgs
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -1131,7 +1132,7 @@ class TestBot:
         until = dtm.datetime(2020, 1, 11, 16, 13)
         until_timestamp = to_timestamp(until, tzinfo=tz_bot.defaults.tzinfo)
 
-        async def test(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             chat_id = data['chat_id'] == 2
             user_id = data['user_id'] == 32
             until_date = data.get('until_date', until_timestamp) == until_timestamp
@@ -1778,7 +1779,7 @@ class TestBot:
         until = dtm.datetime(2020, 1, 11, 16, 13)
         until_timestamp = to_timestamp(until, tzinfo=tz_bot.defaults.tzinfo)
 
-        async def test(url, data, *args, **kwargs):
+        async def make_assertion(url, request_data: RequestData, timeout):
             return data.get('until_date', until_timestamp) == until_timestamp
 
         monkeypatch.setattr(tz_bot.request, 'post', test)

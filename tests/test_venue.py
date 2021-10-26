@@ -76,8 +76,8 @@ class TestVenue:
         async def make_assertion(url, request_data: RequestData, timeout):
             data = request_data.json_parameters
             return (
-                data['longitude'] == self.location.longitude
-                and data['latitude'] == self.location.latitude
+                data['longitude'] == str(self.location.longitude)
+                and data['latitude'] == str(self.location.latitude)
                 and data['title'] == self.title
                 and data['address'] == self.address
                 and data['foursquare_id'] == self.foursquare_id

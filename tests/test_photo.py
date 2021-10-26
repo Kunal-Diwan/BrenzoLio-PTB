@@ -25,6 +25,7 @@ from flaky import flaky
 from telegram import Sticker, PhotoSize, InputFile, MessageEntity, Bot
 from telegram.error import BadRequest, TelegramError
 from telegram.helpers import escape_markdown
+from telegram.request import RequestData
 from tests.conftest import (
     expect_bad_request,
     check_shortcut_call,

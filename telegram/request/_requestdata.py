@@ -47,6 +47,8 @@ class RequestData:
             ``multipart/form-data``.
     """
 
+    __slots__ = ('_parameters', 'contains_files')
+
     def __init__(
         self,
         parameters: List[RequestParameter] = None,
