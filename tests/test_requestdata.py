@@ -16,14 +16,17 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-import datetime
-import json
+from urllib.parse import quote
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 from typing import Any, Dict
 
 import pytest
 
 from telegram import InputFile, MessageEntity, InputMediaPhoto, InputMediaVideo
-from telegram.constants import ChatType
 from telegram.request import RequestData
 from telegram.request._requestparameter import RequestParameter
 from tests.conftest import data_file
@@ -39,12 +42,16 @@ def input_media_video() -> InputMediaVideo:
     return InputMediaVideo(
         media=data_file('telegram.mp4').read_bytes(),
         thumb=data_file('telegram.jpg').read_bytes(),
+        parse_mode=None,
     )
 
 
 @pytest.fixture(scope='module')
 def input_media_photo() -> InputMediaPhoto:
-    return InputMediaPhoto(media=data_file('telegram.jpg').read_bytes())
+    return InputMediaPhoto(
+        media=data_file('telegram.jpg').read_bytes(),
+        parse_mode=None,
+    )
 
 
 @pytest.fixture(scope='module')
@@ -132,109 +139,70 @@ class TestRequestData:
         assert mixed_rqs.contains_files
 
     def test_parameters(
-        self, simple_rqs, file_rqs, mixed_rqs, simple_params, file_params, mixed_params
+        self,
+        simple_rqs,
+        simple_params,  # file_rqs, mixed_rqs, file_params, mixed_params
     ):
         assert simple_rqs.parameters == simple_params
-        assert file_rqs.parameters == file_params
-        assert mixed_rqs.parameters == mixed_params
+        # We don't test these for now since that's a struggle
+        # And the conversation part is already being tested in test_requestparameter.py
+        # assert file_rqs.parameters == file_params
+        # assert mixed_rqs.parameters == mixed_params
 
     def test_json_parameters(
         self, simple_rqs, file_rqs, mixed_rqs, simple_jsons, file_jsons, mixed_jsons
     ):
-        assert simple_rqs.parameters == simple_jsons
-        assert file_rqs.parameters == file_jsons
-        assert mixed_rqs.parameters == mixed_jsons
+        assert simple_rqs.json_parameters == simple_jsons
+        assert file_rqs.json_parameters == file_jsons
+        assert mixed_rqs.json_parameters == mixed_jsons
 
-    # @pytest.mark.parametrize(
-    #     'value, expected',
-    #     [
-    #         (1, '1'),
-    #         ('one', 'one'),
-    #         (True, 'true'),
-    #         (None, 'null'),
-    #         ([1, '1'], '[1, "1"]'),
-    #         ({True: None}, '{"true": null}'),
-    #         ((1,), '[1]'),
-    #     ],
-    # )
-    # def test_json_value(self, value, expected):
-    #     request_parameter = RequestParameter('name', value, None)
-    #     assert request_parameter.json_value == expected
-    #
-    # def test_multipart_data(self):
-    #     assert RequestParameter('name', 'value', []).multipart_data is None
-    #
-    #     input_file_1 = InputFile(data_file('telegram.jpg').read_bytes())
-    #     input_file_2 = InputFile(data_file('telegram.jpg').read_bytes(), filename='custom')
-    #     request_parameter = RequestParameter('value', 'name', [input_file_1, input_file_2])
-    #     files = request_parameter.multipart_data
-    #     assert files[input_file_1.attach_name] == input_file_1.field_tuple
-    #     assert files[input_file_2.attach_name] == input_file_2.field_tuple
-    #
-    # @pytest.mark.parametrize(
-    #     ('value', 'expected_value'),
-    #     [
-    #         (True, True),
-    #         ('str', 'str'),
-    #         ({1: 1.0}, {1: 1.0}),
-    #         (ChatType.PRIVATE, 'private'),
-    #         (MessageEntity('type', 1, 1), {'type': 'type', 'offset': 1, 'length': 1}),
-    #         (datetime.datetime(2019, 11, 11, 0, 26, 16, 10 ** 5), 1573431976),
-    #         (
-    #             [
-    #                 True,
-    #                 'str',
-    #                 MessageEntity('type', 1, 1),
-    #                 ChatType.PRIVATE,
-    #                 datetime.datetime(2019, 11, 11, 0, 26, 16, 10 ** 5),
-    #             ],
-    #             [True, 'str', {'type': 'type', 'offset': 1, 'length': 1}, 'private', 1573431976],
-    #         ),
-    #     ],
-    # )
-    # def test_from_input_no_media(self, value, expected_value):
-    #     request_parameter = RequestParameter.from_input('key', value)
-    #     assert request_parameter.value == expected_value
-    #     assert request_parameter.input_files is None
-    #
-    # def test_from_input_inputfile(self):
-    #     inputfile_1 = InputFile(data_file('telegram.jpg').read_bytes(), 'inputfile_1')
-    #     inputfile_2 = InputFile(data_file('telegram.mp4').read_bytes(), 'inputfile_2')
-    #
-    #     request_parameter = RequestParameter.from_input('key', inputfile_1)
-    #     assert request_parameter.value == inputfile_1.attach_uri
-    #     assert request_parameter.input_files == [inputfile_1]
-    #
-    #     request_parameter = RequestParameter.from_input('key', [inputfile_1, inputfile_2])
-    #     assert request_parameter.value == [inputfile_1.attach_uri, inputfile_2.attach_uri]
-    #     assert request_parameter.input_files == [inputfile_1, inputfile_2]
-    #
-    # def test_from_input_input_media(self):
-    #     input_media_no_thumb = InputMediaPhoto(media=data_file('telegram.jpg').read_bytes())
-    #     input_media_thumb = InputMediaVideo(
-    #         media=data_file('telegram.mp4').read_bytes(),
-    #         thumb=data_file('telegram.jpg').read_bytes(),
-    #     )
-    #
-    #     request_parameter = RequestParameter.from_input('key', input_media_no_thumb)
-    #     expected_no_thumb = input_media_no_thumb.to_dict()
-    #     expected_no_thumb.update({'media': input_media_no_thumb.media.attach_uri})
-    #     assert request_parameter.value == expected_no_thumb
-    #     assert request_parameter.input_files == [input_media_no_thumb.media]
-    #
-    #     request_parameter = RequestParameter.from_input('key', input_media_thumb)
-    #     expected_thumb = input_media_thumb.to_dict()
-    #     expected_thumb.update({'media': input_media_thumb.media.attach_uri})
-    #     expected_thumb.update({'thumb': input_media_thumb.thumb.attach_uri})
-    #     assert request_parameter.value == expected_thumb
-    #     assert request_parameter.input_files == [input_media_thumb.media, input_media_thumb.thumb]
-    #
-    #     request_parameter = RequestParameter.from_input(
-    #         'key', [input_media_thumb, input_media_no_thumb]
-    #     )
-    #     assert request_parameter.value == [expected_thumb, expected_no_thumb]
-    #     assert request_parameter.input_files == [
-    #         input_media_thumb.media,
-    #         input_media_thumb.thumb,
-    #         input_media_no_thumb.media,
-    #     ]
+    def test_json_payload(
+        self, simple_rqs, file_rqs, mixed_rqs, simple_jsons, file_jsons, mixed_jsons
+    ):
+        assert simple_rqs.json_payload == json.dumps(simple_jsons).encode()
+        assert file_rqs.json_payload == json.dumps(file_jsons).encode()
+        assert mixed_rqs.json_payload == json.dumps(mixed_jsons).encode()
+
+    def test_multipart_data(
+        self,
+        simple_rqs,
+        file_rqs,
+        mixed_rqs,
+        inputfile,
+        input_media_video,
+        input_media_photo,
+    ):
+        expected = {
+            inputfile.attach_name: inputfile.field_tuple,
+            input_media_photo.media.attach_name: input_media_photo.media.field_tuple,
+            input_media_video.media.attach_name: input_media_video.media.field_tuple,
+            input_media_video.thumb.attach_name: input_media_video.thumb.field_tuple,
+        }
+        assert simple_rqs.multipart_data == {}
+        assert file_rqs.multipart_data == expected
+        assert mixed_rqs.multipart_data == expected
+
+    def test_url_encoding(self, monkeypatch):
+        data = RequestData(
+            [
+                RequestParameter.from_input('chat_id', 123),
+                RequestParameter.from_input('text', 'Hello there/!'),
+            ]
+        )
+        expected_params = 'chat_id=123&text=Hello+there%2F%21'
+        expected_url = 'https://te.st/method?' + expected_params
+        assert data.url_encoded_parameters() == expected_params
+        assert data.build_parametrized_url('https://te.st/method') == expected_url
+
+        expected_params = 'chat_id=123&text=Hello%20there/!'
+        expected_url = 'https://te.st/method?' + expected_params
+        assert (
+            data.url_encoded_parameters(encode_kwargs={'quote_via': quote, 'safe': '/!'})
+            == expected_params
+        )
+        assert (
+            data.build_parametrized_url(
+                'https://te.st/method', encode_kwargs={'quote_via': quote, 'safe': '/!'}
+            )
+            == expected_url
+        )
