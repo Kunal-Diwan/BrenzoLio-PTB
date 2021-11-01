@@ -208,11 +208,11 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         else:
             request_kwargs = DefaultValue.get_value(self._request_kwargs)
             if (
-                'con_pool_size'
+                'connection_pool_size'
                 not in request_kwargs  # pylint: disable=unsupported-membership-test
             ):
                 request_kwargs[  # pylint: disable=unsupported-assignment-operation
-                    'con_pool_size'
+                    'connection_pool_size'
                 ] = self._get_connection_pool_size(self._workers)
             request = HTTPXRequest(**request_kwargs)  # pylint: disable=not-a-mapping
 
@@ -253,7 +253,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         con_pool_size = self._get_connection_pool_size(self._workers)
 
         try:
-            actual_size = dispatcher.bot.request.con_pool_size
+            actual_size = dispatcher.bot.request.connection_pool_size
 
             if actual_size < con_pool_size:
                 warn(
@@ -262,7 +262,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
                     stacklevel=stack_level,
                 )
         except NotImplementedError:
-            # In case the request class doesn't implement the con_pool_size property
+            # In case the request class doesn't implement the connection_pool_size property
             self._logger.warning(
                 'Cannot determine the connection pool size of the Request object. The '
                 'recommended value is %s.',

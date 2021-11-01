@@ -38,7 +38,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from telegram.error import InvalidToken, RetryAfter, TimedOut, Unauthorized, TelegramError
+from telegram.error import InvalidToken, RetryAfter, TimedOut, Forbidden, TelegramError
 from telegram._utils.warnings import warn
 from telegram.ext import Dispatcher
 from telegram.ext._utils.webhookhandler import WebhookAppClass, WebhookServer
@@ -567,7 +567,7 @@ class Updater(Generic[BT, DT]):
             return False
 
         def bootstrap_onerr_cb(exc):
-            if not isinstance(exc, Unauthorized) and (max_retries < 0 or retries[0] < max_retries):
+            if not isinstance(exc, Forbidden) and (max_retries < 0 or retries[0] < max_retries):
                 retries[0] += 1
                 self.logger.warning(
                     'Failed bootstrap phase; try=%s max_retries=%s', retries[0], max_retries

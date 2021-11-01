@@ -16,8 +16,12 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
-"""This module contains an classes that represent Telegram errors."""
-from typing import Tuple, Union
+"""This module contains an classes that represent Telegram errors.
+
+.. versionchanged:: 14.0
+    Replaced ``Unauthorized`` by :class:`Forbidden`.
+"""
+from typing import Tuple, Union, Optional
 
 
 def _lstrip_str(in_s: str, lstr: str) -> str:
@@ -60,22 +64,33 @@ class TelegramError(Exception):
         return self.__class__, (self.message,)
 
 
-class Unauthorized(TelegramError):
-    """Raised when the bot has not enough rights to perform the requested action."""
+class Forbidden(TelegramError):
+    """Raised when the bot has not enough rights to perform the requested action.
+
+    .. versionchanged:: 14.0
+        This class was previously named ``Unauthorized``.
+    """
 
     __slots__ = ()
 
 
 class InvalidToken(TelegramError):
-    """Raised when the token is invalid."""
+    """Raised when the token is invalid.
 
-    __slots__ = ()
+    Args:
+        message (:obj:`str`, optional): Any additional information about the exception.
 
-    def __init__(self) -> None:
-        super().__init__('Invalid token')
+            .. versionadded:: 14.0
+    """
 
-    def __reduce__(self) -> Tuple[type, Tuple]:  # type: ignore[override]
-        return self.__class__, ()
+    __slots__ = ('_message',)
+
+    def __init__(self, message: str = None) -> None:
+        self._message = message
+        super().__init__('Invalid token' if self._message is None else self._message)
+
+    def __reduce__(self) -> Tuple[type, Tuple[Optional[str]]]:  # type: ignore[override]
+        return self.__class__, (self._message,)
 
 
 class NetworkError(TelegramError):

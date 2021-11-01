@@ -58,7 +58,7 @@ class HTTPXRequest(BaseRequest):
         write_timeout (float): The maximum amount of time (in seconds) to wait for a write
             operation to complete (in terms of a network socket; i.e. POSTing a request or
             uploading a file). `None` will set an infinite timeout. This value is usually
-             overridden by the various ``telegram.Bot`` methods. (default: 5.0)
+            overridden by the various ``telegram.Bot`` methods. (default: 5.0)
         pool_timeout (float): Timeout waiting for a connection object to become available and
             returned from the connection pool. `None` will set an infinite timeout. (default: 1.0)
 
@@ -91,10 +91,10 @@ class HTTPXRequest(BaseRequest):
         self._client = httpx.AsyncClient(timeout=timeout, proxies=proxy_url, limits=limits)
 
     @property
-    def con_pool_size(self) -> int:
+    def connection_pool_size(self) -> int:
         return self._con_pool_size
 
-    async def do_init(self) -> None:
+    async def initialize(self) -> None:
         pass
 
     async def stop(self) -> None:
@@ -126,7 +126,7 @@ class HTTPXRequest(BaseRequest):
             res = await self._client.request(
                 method=method,
                 url=url,
-                headers={'User-Agent': self.user_agent},
+                headers={'User-Agent': self.USER_AGENT},
                 timeout=timeout,
                 files=files,
                 data=data,

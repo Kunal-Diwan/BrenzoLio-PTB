@@ -120,15 +120,32 @@ RT = TypeVar('RT')
 class Bot(TelegramObject, AbstractAsyncContextManager):
     """This object represents a Telegram Bot.
 
-    .. versionadded:: 13.2
-        Objects of this class are comparable in terms of equality. Two objects of this class are
-        considered equal, if their :attr:`bot` is equal.
+    Instances of this class can be used as asyncio context managers, where
+
+    .. code:: python
+
+        async with bot:
+            # code
+
+    is roughly equivalent to
+
+    .. code:: python
+
+        try:
+            bot.do_init()
+            # code
+        finally:
+            request_object.do_teardown()
 
     Note:
         Most bot methods have the argument ``api_kwargs`` which allows to pass arbitrary keywords
         to the Telegram API. This can be used to access new features of the API before they were
         incorporated into PTB. However, this is not guaranteed to work, i.e. it will fail for
         passing files.
+
+    .. versionadded:: 13.2
+        Objects of this class are comparable in terms of equality. Two objects of this class are
+        considered equal, if their :attr:`bot` is equal.
 
     .. versionchanged:: 14.0
 
@@ -228,6 +245,8 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:
+        # Make sure not to return `True` so that exceptions are not suppressed
+        # https://docs.python.org/3/reference/datamodel.html?#object.__aexit__
         await self.do_teardown()
 
     def _insert_defaults(  # pylint: disable=no-self-use
