@@ -104,9 +104,9 @@ class TestLocation:
         assert message2.location.heading == 10
         assert message2.location.proximity_alert_radius == 500
 
-        bot.stop_message_live_location(message.chat_id, message.message_id)
+        await bot.stop_message_live_location(message.chat_id, message.message_id)
         with pytest.raises(BadRequest, match="Message can't be edited"):
-            bot.edit_message_live_location(
+            await bot.edit_message_live_location(
                 message.chat_id, message.message_id, latitude=52.223880, longitude=5.164306
             )
 
