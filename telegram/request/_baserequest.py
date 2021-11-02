@@ -80,7 +80,8 @@ class BaseRequest(
     @property
     def connection_pool_size(self) -> int:
         """Implement this method to allow PTB to infer the size of the connection pool. By default
-        just raises :exc:`NotImplementedError`."""
+        just raises :exc:`NotImplementedError`.
+        """
         raise NotImplementedError
 
     async def __aenter__(self) -> 'BaseRequest':

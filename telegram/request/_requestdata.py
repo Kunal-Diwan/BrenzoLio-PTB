@@ -61,13 +61,15 @@ class RequestData:
         """Gives the parameters as mapping of parameter name to the parameter value, which can be
         a single object of type :obj:`int`, :obj:`float`, :obj:`str` or :obj:`bool` or any
         (possibly nested) composition of lists, tuples and dictionaries, where each entry, key
-        and value is of one of the mentioned types."""
+        and value is of one of the mentioned types.
+        """
         return {param.name: param.value for param in self._parameters}  # type: ignore[misc]
 
     @property
     def json_parameters(self) -> Dict[str, str]:
         """Gives the parameters as mapping of parameter name to the respective JSON encoded
-        value."""
+        value.
+        """
         return {param.name: param.json_value for param in self._parameters}
 
     def url_encoded_parameters(self, encode_kwargs: Dict[str, Any] = None) -> str:

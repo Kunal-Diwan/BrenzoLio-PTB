@@ -116,7 +116,8 @@ class RequestParameter:
     @classmethod
     def from_input(cls, key: str, value: object) -> 'RequestParameter':
         """Builds an instance of this class for a given key-value pair that represents the raw
-        input as passed along from a method of :class:`telegram.Bot`."""
+        input as passed along from a method of :class:`telegram.Bot`.
+        """
         if isinstance(value, list):
             param_values = []
             input_files = []
