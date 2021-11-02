@@ -2300,7 +2300,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if result.get('file_path') and not is_local_file(  # type: ignore[union-attr]
             result['file_path']  # type: ignore[index]
         ):
-            result[
+            result[  # type: ignore[index]
                 'file_path'
             ] = f"{self.base_file_url}/{result['file_path']}"  # type: ignore[index]
 
