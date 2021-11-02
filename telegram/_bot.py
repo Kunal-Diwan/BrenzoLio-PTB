@@ -325,9 +325,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return Message.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     async def initialize(self) -> None:
-        """Initialize resources used by this class. Currently just calls :meth:`get_me` to
-        caches :attr:`bot`.
+        """Initialize resources used by this class. Currently calls :meth:`get_me` to
+        cache :attr:`bot` and calls :meth:`telegram.request.BaseRequest.initialize` for
+        :attr:`request`.
         """
+        await self.request.initialize()
         await self.get_me()
 
     async def shutdown(self) -> None:

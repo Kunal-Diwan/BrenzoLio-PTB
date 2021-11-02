@@ -280,8 +280,8 @@ class TestBot:
                 'getUpdates',
                 'get_bot',
                 'set_bot',
-                'do_init',
-                'do_teardown',
+                'initialize',
+                'shutdown',
             ]
         ],
     )

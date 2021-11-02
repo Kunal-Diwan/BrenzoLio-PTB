@@ -163,32 +163,19 @@ async def raw_bot(bot_info):
         yield _bot
 
 
-DEFAULT_BOTS = {}
-
-
 @pytest.fixture(scope='function')
 async def default_bot(request, bot_info):
     param = request.param if hasattr(request, 'param') else {}
 
-    defaults = Defaults(**param)
-    default_bot = DEFAULT_BOTS.get(defaults)
-    if default_bot:
-        yield default_bot
-    else:
-        default_bot = await make_bot(bot_info, **{'defaults': defaults})
-        DEFAULT_BOTS[defaults] = default_bot
+    default_bot = make_bot(bot_info, defaults=Defaults(**param))
+    async with default_bot:
         yield default_bot
 
 
 @pytest.fixture(scope='function')
 async def tz_bot(timezone, bot_info):
-    defaults = Defaults(tzinfo=timezone)
-    default_bot = DEFAULT_BOTS.get(defaults)
-    if default_bot:
-        yield default_bot
-    else:
-        default_bot = await make_bot(bot_info, **{'defaults': defaults})
-        DEFAULT_BOTS[defaults] = default_bot
+    default_bot = make_bot(bot_info, defaults=Defaults(tzinfo=timezone))
+    async with default_bot:
         yield default_bot
 
 
@@ -286,13 +273,12 @@ def pytest_configure(config):
     # TODO: Write so good code that we don't need to ignore ResourceWarnings anymore
 
 
-async def make_bot(bot_info, **kwargs):
+def make_bot(bot_info, **kwargs):
     """
     Tests are executed on tg.ext.ExtBot, as that class only extends the functionality of tg.bot
     """
     _bot = ExtBot(bot_info['token'], private_key=PRIVATE_KEY, request=TestHttpxRequest(), **kwargs)
-    async with _bot:
-        return _bot
+    return _bot
 
 
 CMD_PATTERN = re.compile(r'/[\da-z_]{1,32}(?:@\w{1,32})?')
@@ -308,7 +294,7 @@ async def make_message(text, **kwargs):
     """
     bot = kwargs.pop('bot', None)
     if bot is None:
-        bot = await make_bot(get_bot())
+        bot = make_bot(get_bot())
     return Message(
         message_id=1,
         from_user=kwargs.pop('user', User(id=1, first_name='', is_bot=False)),
