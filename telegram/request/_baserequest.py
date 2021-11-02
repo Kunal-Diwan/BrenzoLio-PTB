@@ -21,7 +21,7 @@ import abc
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
 from types import TracebackType
-from typing import Union, Tuple, Type, Optional, ClassVar
+from typing import Union, Tuple, Type, Optional, ClassVar, TypeVar
 
 try:
     import ujson as json
@@ -42,6 +42,8 @@ from telegram.error import (
     Forbidden,
 )
 from telegram._utils.types import JSONDict
+
+RT = TypeVar('RT', bound='BaseRequest')
 
 
 class BaseRequest(
@@ -84,9 +86,13 @@ class BaseRequest(
         """
         raise NotImplementedError
 
-    async def __aenter__(self) -> 'BaseRequest':
-        await self.initialize()
-        return self
+    async def __aenter__(self: RT) -> RT:
+        try:
+            await self.initialize()
+            return self
+        except Exception as exc:
+            await self.stop()
+            raise exc
 
     async def __aexit__(
         self,

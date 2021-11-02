@@ -599,7 +599,7 @@ class Updater(Generic[BT, DT]):
                 bootstrap_interval,
             )
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         """Stops the polling/webhook thread, the dispatcher and the job queue."""
         with self.__lock:
             if self.running or (self.dispatcher and self.dispatcher.has_running_threads):
@@ -616,7 +616,7 @@ class Updater(Generic[BT, DT]):
                 # Clear the connection pool only if the bot is managed by the Updater
                 # Otherwise `dispatcher.stop()` already does that
                 if not self.dispatcher:
-                    self.bot.request.stop()
+                    await self.bot.shutdown()
 
     @no_type_check
     def _stop_httpd(self) -> None:

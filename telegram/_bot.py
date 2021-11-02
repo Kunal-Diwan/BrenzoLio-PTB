@@ -115,6 +115,7 @@ if TYPE_CHECKING:
     )
 
 RT = TypeVar('RT')
+BT = TypeVar('BT', bound='Bot')
 
 
 class Bot(TelegramObject, AbstractAsyncContextManager):
@@ -132,10 +133,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     .. code:: python
 
         try:
-            bot.do_init()
+            bot.initialize()
             # code
         finally:
-            request_object.do_teardown()
+            request_object.shutdown()
 
     Note:
         Most bot methods have the argument ``api_kwargs`` which allows to pass arbitrary keywords
@@ -160,8 +161,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         token (:obj:`str`): Bot's unique authentication.
         base_url (:obj:`str`, optional): Telegram Bot API service URL.
         base_file_url (:obj:`str`, optional): Telegram Bot API file URL.
-        request (:obj:`telegram.request.Request`, optional): Pre initialized
-            :obj:`telegram.request.Request`.
+        request (:class:`telegram.request.BaseRequest`, optional): Pre initialized
+            :class:`telegram.request.BaseRequest`. If not passed, an implementation of
+            :class:`telegram.request.BaseRequest` based on the library
+            `httpx <https://www.python-httpx.org>`_ will be used.
         private_key (:obj:`bytes`, optional): Private key for decryption of telegram passport data.
         private_key_password (:obj:`bytes`, optional): Password for above private key.
 
@@ -182,7 +185,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         token: str,
         base_url: str = 'https://api.telegram.org/bot',
         base_file_url: str = 'https://api.telegram.org/file/bot',
-        request: Union[BaseRequest, Type[BaseRequest]] = HTTPXRequest,
+        request: BaseRequest = None,
         private_key: bytes = None,
         private_key_password: bytes = None,
     ):
@@ -191,11 +194,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self.base_url = base_url + self.token
         self.base_file_url = base_file_url + self.token
         self._bot_user: Optional[User] = None
-        self._request: Tuple[BaseRequest, bool] = (
-            (request, False) if isinstance(request, BaseRequest) else (request(), True)
-        )
         self.private_key = None
         self.logger = logging.getLogger(__name__)
+
+        self._request = HTTPXRequest() if request is None else request
 
         if private_key:
             if not CRYPTO_INSTALLED:
@@ -221,33 +223,6 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             return result
 
         return decorator
-
-    async def do_init(self) -> None:
-        """Perform initialization sequence which loads data from Telegram servers."""
-        await self.get_me()
-        await self.get_my_commands()
-
-    async def do_teardown(self) -> None:
-        if self._request[1]:
-            await self._request[0].stop()
-
-    async def __aenter__(self) -> 'Bot':
-        try:
-            await self.do_init()
-        except Exception as exc:
-            await self.do_teardown()
-            raise exc
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> None:
-        # Make sure not to return `True` so that exceptions are not suppressed
-        # https://docs.python.org/3/reference/datamodel.html?#object.__aexit__
-        await self.do_teardown()
 
     def _insert_defaults(  # pylint: disable=no-self-use
         self, data: Dict[str, object], timeout: ODVInput[float]
@@ -349,9 +324,45 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         return Message.de_json(result, self)  # type: ignore[return-value, arg-type]
 
+    async def initialize(self) -> None:
+        """Initialize resources used by this class. Currently just calls :meth:`get_me` to
+        caches :attr:`bot`.
+        """
+        await self.get_me()
+
+    async def shutdown(self) -> None:
+        """Stop & clear resources used by this class. Currently just calls
+        :meth:`telegram.request.BaseRequest.stop` for :attr:`request`.
+        """
+        await self._request.stop()
+
+    async def __aenter__(self: BT) -> BT:
+        try:
+            await self.initialize()
+            return self
+        except Exception as exc:
+            await self.shutdown()
+            raise exc
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        # Make sure not to return `True` so that exceptions are not suppressed
+        # https://docs.python.org/3/reference/datamodel.html?#object.__aexit__
+        await self.shutdown()
+
     @property
-    def request(self) -> BaseRequest:  # skip-cq: PY-D0003
-        return self._request[0]
+    def request(self) -> BaseRequest:
+        """The :class:`~telegram.request.BaseRequest` object used by this bot.
+
+        Warning:
+            Requests to the Bot API are made by the various methods of this class. This attribute
+            should *not* be used manually.
+        """
+        return self._request
 
     @staticmethod
     def _validate_token(token: str) -> str:
@@ -367,29 +378,45 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
     @property
     def bot(self) -> User:
-        """:class:`telegram.User`: User instance for the bot as returned by :meth:`get_me`."""
+        """:class:`telegram.User`: User instance for the bot as returned by :meth:`get_me`.
+
+        Warning:
+            This value is the cached return value of :meth:`get_me`. If the bots profile is
+            changed during runtime, this value won't reflect the changes until :meth:`get_me` is
+            called again.
+
+        .. seealso:: :meth:`do_init`
+        """
         if self._bot_user is None:
             raise RuntimeError(f'{self.__class__.__name__} is not properly initialized')
         return self._bot_user
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
-        """:obj:`int`: Unique identifier for this bot."""
+        """:obj:`int`: Unique identifier for this bot. Shortcut for the corresponding attribute of
+        :attr:`bot`.
+        """
         return self.bot.id
 
     @property
     def first_name(self) -> str:
-        """:obj:`str`: Bot's first name."""
+        """:obj:`str`: Bot's first name. Shortcut for the corresponding attribute of
+        :attr:`bot`.
+        """
         return self.bot.first_name
 
     @property
     def last_name(self) -> str:
-        """:obj:`str`: Optional. Bot's last name."""
+        """:obj:`str`: Optional. Bot's last name. Shortcut for the corresponding attribute of
+        :attr:`bot`.
+        """
         return self.bot.last_name  # type: ignore
 
     @property
     def username(self) -> str:
-        """:obj:`str`: Bot's username."""
+        """:obj:`str`: Bot's username. Shortcut for the corresponding attribute of
+        :attr:`bot`.
+        """
         return self.bot.username  # type: ignore
 
     @property
@@ -399,22 +426,28 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
     @property
     def can_join_groups(self) -> bool:
-        """:obj:`bool`: Bot's :attr:`telegram.User.can_join_groups` attribute."""
+        """:obj:`bool`: Bot's :attr:`telegram.User.can_join_groups` attribute. Shortcut for the
+        corresponding attribute of :attr:`bot`.
+        """
         return self.bot.can_join_groups  # type: ignore
 
     @property
     def can_read_all_group_messages(self) -> bool:
-        """:obj:`bool`: Bot's :attr:`telegram.User.can_read_all_group_messages` attribute."""
+        """:obj:`bool`: Bot's :attr:`telegram.User.can_read_all_group_messages` attribute.
+        Shortcut for the corresponding attribute of :attr:`bot`.
+        """
         return self.bot.can_read_all_group_messages  # type: ignore
 
     @property
     def supports_inline_queries(self) -> bool:
-        """:obj:`bool`: Bot's :attr:`telegram.User.supports_inline_queries` attribute."""
+        """:obj:`bool`: Bot's :attr:`telegram.User.supports_inline_queries` attribute.
+        Shortcut for the corresponding attribute of :attr:`bot`.
+        """
         return self.bot.supports_inline_queries  # type: ignore
 
     @property
     def name(self) -> str:
-        """:obj:`str`: Bot's @username."""
+        """:obj:`str`: Bot's @username. Shortcut for the corresponding attribute of :attr:`bot`."""
         return f'@{self.username}'
 
     @_log
