@@ -276,6 +276,10 @@ class BaseRequest(
     ) -> Tuple[int, bytes]:
         """Makes a request to the Bot API. Must be implemented by a subclass.
 
+        Warning:
+            This method will be called by :meth:`post` and :meth:`retrieve`. I should *not* be
+            called manually.
+
         Args:
             method (:obj:`str`): HTTP method (i.e. ``'POST'``, ``'GET'``, etc.).
             url (:obj:`str`): The request's URL.

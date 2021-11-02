@@ -34,8 +34,7 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains methods to make POST and GET requests using the httpx library."""
-import logging
-from typing import Tuple
+from typing import Tuple, Optional
 
 import httpx
 
@@ -44,36 +43,40 @@ from telegram.request import BaseRequest, RequestData
 
 
 class HTTPXRequest(BaseRequest):
-    """Implementation of ``BaseRequest`` abstraction class using ``httpx`` async HTTP client.
+    """Implementation of :class`BaseRequest` using the library
+    `httpx <https://www.python-httpx.org>`_`.
 
     Args:
-        con_pool_size (int): Number of connections to keep in the connection pool. (default: 1)
-        proxy_url (str): The URL to the proxy server. For example: `http://127.0.0.1:3128`.
-        connect_timeout (float): The maximum amount of time (in seconds) to wait for a
-            connection attempt to a server to succeed. `None` will set an infinite timeout for
-            connection attempts. (default: 5.0)
-        read_timeout (float): The maximum amount of time (in seconds) to wait for a response from
-            Telegram's server. `None` will set an infinite timeout. This value is usually
-            overridden by the various ``telegram.Bot`` methods. (default: 5.0)
-        write_timeout (float): The maximum amount of time (in seconds) to wait for a write
-            operation to complete (in terms of a network socket; i.e. POSTing a request or
-            uploading a file). `None` will set an infinite timeout. This value is usually
-            overridden by the various ``telegram.Bot`` methods. (default: 5.0)
-        pool_timeout (float): Timeout waiting for a connection object to become available and
-            returned from the connection pool. `None` will set an infinite timeout. (default: 1.0)
+        connection_pool_size (:obj:`int`, optional): Number of connections to keep in the
+            connection pool. Default to :obj:`1`.
+        proxy_url (:obj:`str`, optional): The URL to the proxy server. For example
+            ``'http://127.0.0.1:3128'``. Defaults to :obj:`None`.
+        connect_timeout (:obj:`float`, optional): The maximum amount of time (in seconds) to wait
+            for a connection attempt to a server to succeed. :obj:`None` will set an infinite
+            timeout for connection attempts. Defaults to ``5.0``.
+        read_timeout (:obj:`float`, optional): The maximum amount of time (in seconds) to wait for
+            a response from Telegram's server. :obj:`None` will set an infinite timeout. This value
+            is usually overridden by the various methods of :class:`telegram.Bot`. Defaults to
+            ``5.0``.
+        write_timeout (:obj:`float`, optional): The maximum amount of time (in seconds) to wait for
+            a write operation to complete (in terms of a network socket; i.e. POSTing a request or
+            uploading a file).:obj:`None` will set an infinite timeout. Defaults to ``5.0``.
+        pool_timeout (:obj:`float`, optional): Timeout waiting for a connection object to become
+            available and returned from the connection pool. :obj:`None` will set an infinite
+            timeout. Defaults to ``1.0``.
 
     """
 
-    __slots__ = ('_log', '_client', '_con_pool_size')
+    __slots__ = ('_client', '_connection_pool_size')
 
     def __init__(
         self,
-        con_pool_size: int = 1,
+        connection_pool_size: int = 1,
         proxy_url: str = None,
-        connect_timeout: float = 5.0,
-        read_timeout: float = 5.0,
-        write_timeout: float = 5.0,
-        pool_timeout: float = 1.0,
+        connect_timeout: Optional[float] = 5.0,
+        read_timeout: Optional[float] = 5.0,
+        write_timeout: Optional[float] = 5.0,
+        pool_timeout: Optional[float] = 1.0,
     ):
         timeout = httpx.Timeout(
             connect=connect_timeout,
@@ -81,23 +84,24 @@ class HTTPXRequest(BaseRequest):
             write=write_timeout,
             pool=pool_timeout,
         )
-        self._con_pool_size = con_pool_size
+        self._connection_pool_size = connection_pool_size
         limits = httpx.Limits(
-            max_connections=con_pool_size, max_keepalive_connections=con_pool_size
+            max_connections=connection_pool_size, max_keepalive_connections=connection_pool_size
         )
 
-        self._log = logging.getLogger(__name__)
         # TODO p0: Test client with proxy!
         self._client = httpx.AsyncClient(timeout=timeout, proxies=proxy_url, limits=limits)
 
     @property
     def connection_pool_size(self) -> int:
-        return self._con_pool_size
+        """See :attr:`BaseRequest.connection_pool_size`."""
+        return self._connection_pool_size
 
     async def initialize(self) -> None:
-        pass
+        """See :meth:`BaseRequest.initialize`."""
 
     async def stop(self) -> None:
+        """See :meth:`BaseRequest.stop`."""
         await self._client.aclose()
 
     async def do_request(
@@ -108,6 +112,7 @@ class HTTPXRequest(BaseRequest):
         read_timeout: float = None,
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
+        """See :meth:`BaseRequest.do_request`."""
         timeout = self._client.timeout
         if read_timeout is not None:
             timeout.read = read_timeout
@@ -136,6 +141,6 @@ class HTTPXRequest(BaseRequest):
         except httpx.HTTPError as err:
             # HTTPError must come last as its the base httpx exception class
             # TODO p4: do something smart here; for now just raise NetworkError
-            raise NetworkError(f'httpx HTTPError {err}') from err
+            raise NetworkError(f'httpx HTTPError: {err}') from err
 
         return res.status_code, res.content
