@@ -130,7 +130,7 @@ class ChatMigrated(TelegramError):
 
     def __init__(self, new_chat_id: int):
         super().__init__(f'Group migrated to supergroup. New chat id: {new_chat_id}')
-        self.new_chat_id = new_chat_id
+        self.new_chat_id = int(new_chat_id)
 
     def __reduce__(self) -> Tuple[type, Tuple[int]]:  # type: ignore[override]
         return self.__class__, (self.new_chat_id,)

@@ -19,6 +19,5 @@
 
 from ._requestdata import RequestData
 from ._baserequest import BaseRequest
-from ._httpxrequest import HTTPXRequest
 
-__all__ = ('BaseRequest', 'HTTPXRequest', 'RequestData')
+__all__ = ('BaseRequest', 'RequestData')

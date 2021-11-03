@@ -116,7 +116,7 @@ class BaseRequest(
         self,
         url: str,
         request_data: RequestData = None,
-        timeout: float = None,
+        read_timeout: float = None,
     ) -> Union[JSONDict, bool]:
         """Makes a request to the Bot API handles the return code and parses the answer.
 
@@ -128,7 +128,7 @@ class BaseRequest(
             url (:obj:`str`): The web location we want to retrieve.
             request_data (:class:`telegram.request.RequestData`, optional): An object describing
                 any parameters and files to upload for the request.
-            timeout (:obj:`float`, optional): If this value is specified, use it as the read
+            read_timeout (:obj:`float`, optional): If this value is specified, use it as the read
                 timeout from the server (instead of the one specified during creation of the
                 connection pool).
 
@@ -137,7 +137,7 @@ class BaseRequest(
 
         """
         result = await self._request_wrapper(
-            method='POST', url=url, request_data=request_data, read_timeout=timeout
+            method='POST', url=url, request_data=request_data, read_timeout=read_timeout
         )
         json_data = self._parse_json_response(result)
         # For successful requests, the results are in the 'result' entry
@@ -206,27 +206,24 @@ class BaseRequest(
             # 200-299 range are HTTP success statuses
             return payload
 
-        try:
-            response_data = self._parse_json_response(payload)
+        response_data = self._parse_json_response(payload)
 
-            # In some special cases, we ca raise more informative exceptions:
-            # see https://core.telegram.org/bots/api#responseparameters and
-            # https://core.telegram.org/bots/api#making-requests
-            parameters = response_data.get('parameters')
-            if parameters:
-                migrate_to_chat_id = parameters.get('migrate_to_chat_id')
-                if migrate_to_chat_id:
-                    raise ChatMigrated(migrate_to_chat_id)
-                retry_after = parameters.get('retry_after')
-                if retry_after:
-                    raise RetryAfter(retry_after)
+        # In some special cases, we ca raise more informative exceptions:
+        # see https://core.telegram.org/bots/api#responseparameters and
+        # https://core.telegram.org/bots/api#making-requests
+        parameters = response_data.get('parameters')
+        if parameters:
+            migrate_to_chat_id = parameters.get('migrate_to_chat_id')
+            if migrate_to_chat_id:
+                raise ChatMigrated(migrate_to_chat_id)
+            retry_after = parameters.get('retry_after')
+            if retry_after:
+                raise RetryAfter(retry_after)
 
-            description = response_data.get('description')
-            if description:
-                message = description
-            else:
-                message = 'Unknown HTTPError'
-        except ValueError:
+        description = response_data.get('description')
+        if description:
+            message = description
+        else:
             message = 'Unknown HTTPError'
 
         if code == HTTPStatus.FORBIDDEN:
@@ -242,13 +239,8 @@ class BaseRequest(
             raise BadRequest(message)
         if code == HTTPStatus.CONFLICT:
             raise Conflict(message)
-        if code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE:
-            raise NetworkError(
-                'File too large to upload. Please check the limits at '
-                'https://core.telegram.org/bots/api#senddocument'
-            )
         if code == HTTPStatus.BAD_GATEWAY:
-            raise NetworkError('Bad Gateway')
+            raise NetworkError(description or 'Bad Gateway')
         raise NetworkError(f'{message} ({code})')
 
     @staticmethod
@@ -266,10 +258,6 @@ class BaseRequest(
             return json.loads(decoded_s)
         except ValueError as exc:
             raise TelegramError('Invalid server response') from exc
-
-    @staticmethod
-    def json_dump(data: JSONDict) -> str:
-        return json.dumps(data)
 
     @abc.abstractmethod
     async def do_request(

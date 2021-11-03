@@ -43,7 +43,7 @@ from telegram._utils.types import ODVInput, DVInput, FilePathInput
 from telegram._utils.warnings import warn
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue, DEFAULT_FALSE
 from telegram.ext import Dispatcher, JobQueue, Updater, ExtBot, ContextTypes, CallbackContext
-from telegram.request import HTTPXRequest
+from telegram.request._httpxrequest import HTTPXRequest
 from telegram.ext._utils.types import CCT, UD, CD, BD, BT, JQ, PT
 from telegram.request import BaseRequest
 
@@ -252,7 +252,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         con_pool_size = self._get_connection_pool_size(self._workers)
 
         try:
-            actual_size = dispatcher.bot.request.connection_pool_size
+            actual_size = dispatcher.bot.httpx_request.connection_pool_size
 
             if actual_size < con_pool_size:
                 warn(

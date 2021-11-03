@@ -64,7 +64,8 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TimedOut, RetryAfter
 from telegram._utils.defaultvalue import DefaultValue, DEFAULT_NONE
-from telegram.request import HTTPXRequest, RequestData
+from telegram.request import RequestData
+from telegram.request._httpxrequest import HTTPXRequest
 from tests.bots import get_bot
 
 

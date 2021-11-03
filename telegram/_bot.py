@@ -98,10 +98,10 @@ from telegram.error import InvalidToken, TelegramError
 from telegram.constants import InlineQueryLimit
 from telegram.request import BaseRequest, RequestData
 from telegram.request._requestparameter import RequestParameter
+from telegram.request._httpxrequest import HTTPXRequest
 from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue, DEFAULT_20
 from telegram._utils.files import is_local_file, parse_file_input
 from telegram._utils.types import FileInput, JSONDict, ODVInput, DVInput
-from telegram.request import HTTPXRequest
 
 if TYPE_CHECKING:
     from telegram import (
@@ -292,7 +292,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return await self.request.post(
             f'{self.base_url}/{endpoint}',
             request_data=request_data,
-            timeout=effective_timeout,
+            read_timeout=effective_timeout,
         )
 
     async def _send_message(
