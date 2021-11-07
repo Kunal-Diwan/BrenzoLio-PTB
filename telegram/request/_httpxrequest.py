@@ -90,6 +90,8 @@ class HTTPXRequest(BaseRequest):
         )
 
         # TODO p0: Test client with proxy!
+        # TODO p2: Document that this can also be specified via env vars
+        #          https://www.python-httpx.org/advanced/#environment-variables
         self._client = httpx.AsyncClient(timeout=timeout, proxies=proxy_url, limits=limits)
 
     @property
