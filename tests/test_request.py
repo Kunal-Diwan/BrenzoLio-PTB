@@ -22,6 +22,7 @@ import json
 from http import HTTPStatus
 from typing import Tuple, Any, Coroutine, Callable
 
+import httpx
 import pytest
 
 from telegram.error import (
@@ -33,9 +34,21 @@ from telegram.error import (
     InvalidToken,
     BadRequest,
     Conflict,
+    TimedOut,
 )
 from telegram.request import BaseRequest, RequestData
 from telegram.request._httpxrequest import HTTPXRequest
+
+# We only need the first fixture, but it uses the others, so pytest needs us to import them as well
+from .test_requestdata import (  # noqa: F401
+    mixed_rqs,
+    mixed_params,
+    file_params,
+    simple_params,
+    inputfile,
+    input_media_video,
+    input_media_photo,
+)
 
 
 def mocker_factory(
@@ -285,3 +298,140 @@ class TestRequest:
 
         await httpx_request.post('url', None, 42.314)
         assert self.test_flag == 42.314
+
+
+class TestHTTPXRequest:
+    test_flag = None
+
+    @pytest.fixture(autouse=True)
+    def reset(self):
+        self.test_flag = None
+
+    def test_init(self):
+        request = HTTPXRequest()
+        assert request.connection_pool_size == 1
+        assert request._client.timeout == httpx.Timeout(connect=5.0, read=5.0, write=5.0, pool=1.0)
+
+        request = HTTPXRequest(
+            connection_pool_size=42,
+            connect_timeout=43,
+            read_timeout=44,
+            write_timeout=45,
+            pool_timeout=46,
+        )
+        assert request.connection_pool_size == 42
+        assert request._client.timeout == httpx.Timeout(connect=43, read=44, write=45, pool=46)
+
+    @pytest.mark.asyncio
+    async def test_context_manager(self, monkeypatch):
+        async def initialize():
+            self.test_flag = ['initialize']
+
+        async def aclose(*args):
+            self.test_flag.append('stop')
+
+        httpx_request = HTTPXRequest()
+
+        monkeypatch.setattr(httpx_request, 'initialize', initialize)
+        monkeypatch.setattr(httpx.AsyncClient, 'aclose', aclose)
+
+        async with httpx_request:
+            pass
+
+        assert self.test_flag == ['initialize', 'stop']
+
+    @pytest.mark.asyncio
+    async def test_do_request_default_timeouts(self, monkeypatch, httpx_request):
+        default_timeouts = httpx.Timeout(connect=5.0, read=5.0, write=5.0, pool=1.0)
+
+        async def make_assertion(self, method, url, headers, timeout, files, data):
+            self.test_flag = timeout == default_timeouts
+            return httpx.Response(HTTPStatus.OK)
+
+        monkeypatch.setattr(httpx.AsyncClient, 'request', make_assertion)
+        await httpx_request.do_request('GET', 'URL')
+        assert httpx_request._client.timeout == default_timeouts
+
+    @pytest.mark.asyncio
+    async def test_do_request_manual_timeouts(self, monkeypatch, httpx_request):
+        default_timeouts = httpx.Timeout(connect=5.0, read=5.0, write=5.0, pool=1.0)
+
+        async def make_assertion(self, method, url, headers, timeout, files, data):
+            self.test_flag = timeout == httpx.Timeout(connect=5.0, read=5.5, write=5.6, pool=1.0)
+            return httpx.Response(HTTPStatus.OK)
+
+        monkeypatch.setattr(httpx.AsyncClient, 'request', make_assertion)
+        await httpx_request.do_request('GET', 'URL', read_timeout=5.5, write_timeout=5.6)
+        assert httpx_request._client.timeout == default_timeouts
+
+    @pytest.mark.asyncio
+    async def test_do_request_params_no_data(self, monkeypatch, httpx_request):
+        async def make_assertion(self, method, url, headers, timeout, files, data):
+            method_assertion = method == 'method'
+            url_assertion = url == 'url'
+            files_assertion = files is None
+            data_assertion = data is None
+            if method_assertion and url_assertion and files_assertion and data_assertion:
+                return httpx.Response(HTTPStatus.OK)
+            return httpx.Response(HTTPStatus.BAD_REQUEST)
+
+        monkeypatch.setattr(httpx.AsyncClient, 'request', make_assertion)
+        code, _ = await httpx_request.do_request(
+            'method', 'url', read_timeout=5.5, write_timeout=5.6
+        )
+        assert code == HTTPStatus.OK
+
+    @pytest.mark.asyncio
+    async def test_do_request_params_with_data(
+        self, monkeypatch, httpx_request, mixed_rqs  # noqa: 9811
+    ):
+        async def make_assertion(self, method, url, headers, timeout, files, data):
+            method_assertion = method == 'method'
+            url_assertion = url == 'url'
+            files_assertion = files == mixed_rqs.multipart_data
+            data_assertion = data == mixed_rqs.json_parameters
+            if method_assertion and url_assertion and files_assertion and data_assertion:
+                return httpx.Response(HTTPStatus.OK)
+            return httpx.Response(HTTPStatus.BAD_REQUEST)
+
+        monkeypatch.setattr(httpx.AsyncClient, 'request', make_assertion)
+        code, _ = await httpx_request.do_request(
+            'method',
+            'url',
+            read_timeout=5.5,
+            write_timeout=5.6,
+            request_data=mixed_rqs,
+        )
+        assert code == HTTPStatus.OK
+
+    @pytest.mark.asyncio
+    async def test_do_request_return_value(self, monkeypatch, httpx_request):
+        async def make_assertion(self, method, url, headers, timeout, files, data):
+            return httpx.Response(123, content=b'content')
+
+        monkeypatch.setattr(httpx.AsyncClient, 'request', make_assertion)
+        code, content = await httpx_request.do_request(
+            'method',
+            'url',
+        )
+        assert code == 123
+        assert content == b'content'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ['raised_class', 'expected_class'],
+        [(httpx.TimeoutException, TimedOut), (httpx.HTTPError, NetworkError)],
+    )
+    async def test_do_request_exceptions(
+        self, monkeypatch, httpx_request, raised_class, expected_class
+    ):
+        async def make_assertion(self, method, url, headers, timeout, files, data):
+            raise raised_class('message')
+
+        monkeypatch.setattr(httpx.AsyncClient, 'request', make_assertion)
+
+        with pytest.raises(expected_class):
+            await httpx_request.do_request(
+                'method',
+                'url',
+            )

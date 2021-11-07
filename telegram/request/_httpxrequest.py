@@ -113,7 +113,12 @@ class HTTPXRequest(BaseRequest):
         write_timeout: float = None,
     ) -> Tuple[int, bytes]:
         """See :meth:`BaseRequest.do_request`."""
-        timeout = self._client.timeout
+        timeout = httpx.Timeout(
+            connect=self._client.timeout.connect,
+            read=self._client.timeout.read,
+            write=self._client.timeout.write,
+            pool=self._client.timeout.pool,
+        )
         if read_timeout is not None:
             timeout.read = read_timeout
         if write_timeout is not None:
