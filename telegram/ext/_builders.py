@@ -252,7 +252,7 @@ class _BaseBuilder(Generic[ODT, BT, CCT, UD, CD, BD, JQ, PT]):
         con_pool_size = self._get_connection_pool_size(self._workers)
 
         try:
-            actual_size = dispatcher.bot.httpx_request.connection_pool_size
+            actual_size = dispatcher.bot.request.connection_pool_size
 
             if actual_size < con_pool_size:
                 warn(
