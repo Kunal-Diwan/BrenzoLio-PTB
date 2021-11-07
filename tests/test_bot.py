@@ -155,6 +155,12 @@ class TestBot:
     Most are executed on tg.ext.ExtBot, as that class only extends the functionality of tg.bot
     """
 
+    test_flag = None
+
+    @pytest.fixture(scope='function', autouse=True)
+    def reset(self):
+        self.test_flag = None
+
     @pytest.mark.parametrize('inst', ['bot', "default_bot"], indirect=True)
     def test_slot_behaviour(self, inst, mro_slots):
         for attr in inst.__slots__:
@@ -177,6 +183,57 @@ class TestBot:
     async def test_invalid_token(self, token):
         with pytest.raises(InvalidToken, match='Invalid token'):
             Bot(token)
+
+    @pytest.mark.asyncio
+    async def test_initialize_and_stop(self, bot, monkeypatch):
+        async def initialize(*args, **kwargs):
+            self.test_flag = ['initialize']
+
+        async def stop(*args, **kwargs):
+            self.test_flag.append('stop')
+
+        temp_bot = Bot(token=bot.token)
+        monkeypatch.setattr(temp_bot.request, 'initialize', initialize)
+        monkeypatch.setattr(temp_bot.request, 'stop', stop)
+        await temp_bot.initialize()
+        assert self.test_flag == ['initialize']
+        assert temp_bot.bot == bot.bot
+
+        await temp_bot.shutdown()
+        assert self.test_flag == ['initialize', 'stop']
+
+    @pytest.mark.asyncio
+    async def test_context_manager(self, monkeypatch, bot):
+        async def initialize():
+            self.test_flag = ['initialize']
+
+        async def shutdown(*args):
+            self.test_flag.append('stop')
+
+        monkeypatch.setattr(bot, 'initialize', initialize)
+        monkeypatch.setattr(bot, 'shutdown', shutdown)
+
+        async with bot:
+            pass
+
+        assert self.test_flag == ['initialize', 'stop']
+
+    @pytest.mark.asyncio
+    async def test_context_manager_exception_on_init(self, monkeypatch, bot):
+        async def initialize():
+            raise RuntimeError('initialize')
+
+        async def shutdown():
+            self.test_flag = 'stop'
+
+        monkeypatch.setattr(bot, 'initialize', initialize)
+        monkeypatch.setattr(bot, 'shutdown', shutdown)
+
+        with pytest.raises(RuntimeError, match='initialize'):
+            async with bot:
+                pass
+
+        assert self.test_flag == 'stop'
 
     @pytest.mark.asyncio
     async def test_log_decorator(self, bot, caplog):
@@ -232,6 +289,26 @@ class TestBot:
         assert get_me_bot.can_read_all_group_messages == bot.can_read_all_group_messages
         assert get_me_bot.supports_inline_queries == bot.supports_inline_queries
         assert f'https://t.me/{get_me_bot.username}' == bot.link
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        'attribute',
+        [
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'name',
+            'can_join_groups',
+            'can_read_all_group_messages',
+            'supports_inline_queries',
+            'link',
+        ],
+    )
+    async def test_get_me_and_properties_not_initialized(self, bot: Bot, attribute):
+        bot = Bot(token=bot.token)
+        with pytest.raises(RuntimeError, match='not properly initialized'):
+            bot[attribute]
 
     @pytest.mark.asyncio
     async def test_equality(self):

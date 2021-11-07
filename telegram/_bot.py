@@ -336,7 +336,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """Stop & clear resources used by this class. Currently just calls
         :meth:`telegram.request.BaseRequest.stop` for :attr:`request`.
         """
-        await self._request.stop()
+        await self.request.stop()
 
     async def __aenter__(self: BT) -> BT:
         try:
@@ -387,10 +387,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             changed during runtime, this value won't reflect the changes until :meth:`get_me` is
             called again.
 
-        .. seealso:: :meth:`do_init`
+        .. seealso:: :meth:`initialize`
         """
         if self._bot_user is None:
-            raise RuntimeError(f'{self.__class__.__name__} is not properly initialized')
+            raise RuntimeError(
+                f'{self.__class__.__name__} is not properly initialized. Call '
+                f'`{self.__class__.__name__}.initialize` before accessing this property.'
+            )
         return self._bot_user
 
     @property
