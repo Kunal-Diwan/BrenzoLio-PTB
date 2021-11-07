@@ -471,7 +471,7 @@ class TestSendMediaGroup:
         video_file,  # noqa: F811
         monkeypatch,
     ):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             result = all(
                 field_tuple[0] == 'custom_filename'
                 for field_tuple in request_data.multipart_data.values()

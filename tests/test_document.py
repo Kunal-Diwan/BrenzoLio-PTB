@@ -148,7 +148,7 @@ class TestDocument:
     async def test_send_with_document(
         self, monkeypatch, bot, chat_id, document, disable_content_type_detection
     ):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             data = request_data.parameters
             type_detection = (
                 data.get('disable_content_type_detection') == disable_content_type_detection

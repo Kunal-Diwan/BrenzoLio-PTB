@@ -192,7 +192,7 @@ class TestInvoice:
 
     @pytest.mark.asyncio
     async def test_send_object_as_provider_data(self, monkeypatch, bot, chat_id, provider_token):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             # depends on whether we're using ujson
             return request_data.json_parameters['provider_data'] in [
                 '{"test_data": 123456789}',

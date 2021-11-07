@@ -69,7 +69,7 @@ class TestContact:
 
     @pytest.mark.asyncio
     async def test_send_with_contact(self, monkeypatch, bot, chat_id, contact):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             data = request_data.json_parameters
             phone = data['phone_number'] == contact.phone_number
             first = data['first_name'] == contact.first_name

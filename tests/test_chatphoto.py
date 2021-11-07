@@ -99,7 +99,7 @@ class TestChatPhoto:
 
     @pytest.mark.asyncio
     async def test_send_with_chat_photo(self, monkeypatch, bot, super_group_id, chat_photo):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             return request_data.parameters['photo'] == chat_photo.to_dict()
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

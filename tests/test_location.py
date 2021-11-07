@@ -113,7 +113,7 @@ class TestLocation:
     # TODO: Needs improvement with in inline sent live location.
     @pytest.mark.asyncio
     async def test_edit_live_inline_message(self, monkeypatch, bot, location):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             data = request_data.json_parameters
             lat = data['latitude'] == str(location.latitude)
             lon = data['longitude'] == str(location.longitude)
@@ -135,7 +135,7 @@ class TestLocation:
     # TODO: Needs improvement with in inline sent live location.
     @pytest.mark.asyncio
     async def test_stop_live_inline_message(self, monkeypatch, bot):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             id_ = request_data.json_parameters['inline_message_id'] == '1234'
             return id_
 
@@ -144,7 +144,7 @@ class TestLocation:
 
     @pytest.mark.asyncio
     async def test_send_with_location(self, monkeypatch, bot, chat_id, location):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             lat = request_data.json_parameters['latitude'] == str(location.latitude)
             lon = request_data.json_parameters['longitude'] == str(location.longitude)
             return lat and lon
@@ -189,7 +189,7 @@ class TestLocation:
 
     @pytest.mark.asyncio
     async def test_edit_live_location_with_location(self, monkeypatch, bot, location):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             lat = request_data.json_parameters['latitude'] == str(location.latitude)
             lon = request_data.json_parameters['longitude'] == str(location.longitude)
             return lat and lon

@@ -660,14 +660,14 @@ async def check_defaults_handling(
     expected_return_values = [None, []] if return_value is None else [return_value]
 
     async def make_assertion(
-        url, request_data: RequestData, timeout=DEFAULT_NONE, df_value=DEFAULT_NONE
+        url, request_data: RequestData, read_timeout=DEFAULT_NONE, df_value=DEFAULT_NONE
     ):
         data = request_data.parameters
 
         # Check timeout first
         expected_timeout = method_timeout if df_value is DEFAULT_NONE else df_value
-        if timeout != expected_timeout:
-            pytest.fail(f'Got value {timeout} for "timeout", expected {expected_timeout}')
+        if read_timeout != expected_timeout:
+            pytest.fail(f'Got value {read_timeout} for "timeout", expected {expected_timeout}')
 
         # Check regular arguments that need defaults
         for arg in (dkw for dkw in kwargs_need_default if dkw != 'timeout'):

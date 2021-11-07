@@ -215,7 +215,7 @@ class TestSticker:
 
     @pytest.mark.asyncio
     async def test_send_with_sticker(self, monkeypatch, bot, chat_id, sticker):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             return request_data.json_parameters['sticker'] == sticker.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

@@ -73,7 +73,7 @@ class TestVenue:
 
     @pytest.mark.asyncio
     async def test_send_with_venue(self, monkeypatch, bot, chat_id, venue):
-        async def make_assertion(url, request_data: RequestData, timeout):
+        async def make_assertion(url, request_data: RequestData, read_timeout):
             data = request_data.json_parameters
             return (
                 data['longitude'] == str(self.location.longitude)
