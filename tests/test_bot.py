@@ -193,14 +193,19 @@ class TestBot:
             self.test_flag.append('stop')
 
         temp_bot = Bot(token=bot.token)
-        monkeypatch.setattr(temp_bot.request, 'initialize', initialize)
-        monkeypatch.setattr(temp_bot.request, 'stop', stop)
-        await temp_bot.initialize()
-        assert self.test_flag == ['initialize']
-        assert temp_bot.bot == bot.bot
+        orig_stop = temp_bot.request.stop
 
-        await temp_bot.shutdown()
-        assert self.test_flag == ['initialize', 'stop']
+        try:
+            monkeypatch.setattr(temp_bot.request, 'initialize', initialize)
+            monkeypatch.setattr(temp_bot.request, 'stop', stop)
+            await temp_bot.initialize()
+            assert self.test_flag == ['initialize']
+            assert temp_bot.bot == bot.bot
+
+            await temp_bot.shutdown()
+            assert self.test_flag == ['initialize', 'stop']
+        finally:
+            await orig_stop()
 
     @pytest.mark.asyncio
     async def test_context_manager(self, monkeypatch, bot):
@@ -248,10 +253,11 @@ class TestBot:
         'acd_in,maxsize,acd',
         [(True, 1024, True), (False, 1024, False), (0, 0, True), (None, None, True)],
     )
-    def test_callback_data_maxsize(self, bot, acd_in, maxsize, acd):
-        bot = ExtBot(bot.token, arbitrary_callback_data=acd_in)
-        assert bot.arbitrary_callback_data == acd
-        assert bot.callback_data_cache.maxsize == maxsize
+    @pytest.mark.asyncio
+    async def test_callback_data_maxsize(self, bot, acd_in, maxsize, acd):
+        async with ExtBot(bot.token, arbitrary_callback_data=acd_in) as acd_bot:
+            assert acd_bot.arbitrary_callback_data == acd
+            assert acd_bot.callback_data_cache.maxsize == maxsize
 
     @flaky(3, 1)
     @pytest.mark.asyncio
@@ -307,8 +313,11 @@ class TestBot:
     )
     async def test_get_me_and_properties_not_initialized(self, bot: Bot, attribute):
         bot = Bot(token=bot.token)
-        with pytest.raises(RuntimeError, match='not properly initialized'):
-            bot[attribute]
+        try:
+            with pytest.raises(RuntimeError, match='not properly initialized'):
+                bot[attribute]
+        finally:
+            await bot.shutdown()
 
     @pytest.mark.asyncio
     async def test_equality(self):
